@@ -50,7 +50,7 @@ Simply install the app and click on the Inputs tab.  Click the 'Create New Input
 
 ## The data from Intersight in Splunk
 
-Each of the selectable options above maps a specific API in Intersight to a unique sourcetype in Splunk.
+Each of the selectable options above maps to APIs in Intersight with unique sourcetypes in Splunk.
 
 | Checkbox | Intersight API | Splunk sourcetype |
 | --- | --- | --- |
@@ -59,16 +59,9 @@ Each of the selectable options above maps a specific API in Intersight to a uniq
 | Enable Advisories | [tam/AdvisoryInstances][3] | cisco:intersight:tamAdvisoryInstances |
 | Enable Compute Inventory | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
 | Enable HX Cluster Inventory | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
+| Enable HX Cluster Inventory | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
 | Enable Network Inventory | [network/ElementSummaries][6] | cisco:intersight:networkElementSummaries |
 | Enable Target Inventory | [asset/Targets][7] | cisco:intersight:assetTargets |
-
-[1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/get/
-[2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/get/
-[3]: https://intersight.com/apidocs/apirefs/api/v1/tam/AdvisoryInstances/get/
-[4]: https://intersight.com/apidocs/apirefs/api/v1/compute/PhysicalSummaries/get/
-[5]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Clusters/get/
-[6]: https://intersight.com/apidocs/apirefs/api/v1/network/ElementSummaries/get/
-[7]: https://intersight.com/apidocs/apirefs/api/v1/asset/Targets/get/
 
 All of the data from this Add-on can be queried in Splunk using the following [SPL](https://docs.splunk.com/Splexicon:SPL):
 
@@ -78,7 +71,11 @@ In many cases, this will retrieve duplicate records as alarms are updated or inv
 
 `index=* sourcetype="cisco:intersight:computePhysicalSummaries" | dedup Moid`
 
-### More examples
+The technique of using `| dedup Moid` is applicable to all sourcetypes except cisco:intersight:aaaAuditRecords and should be used in most circumstances.
+
+You may also notice, if you are very famililar with the Intersight API, that there are a few nodes of JSON that are missing in Splunk that are present elsewhere.  This is due to some editorial pruning that is occuring in the Add-on.  There are some object references in the API results that simply don't serve any purpose in Splunk.  The Add-on is pruning these to improve the overall experience and optimize the amount of data that gets pushed to Splunk.
+
+## More examples
 
 One for each sourcetype...
 
@@ -89,14 +86,25 @@ One for each sourcetype...
 | cisco:intersight:tamAdvisoryInstances | `index=* sourcetype=cisco:intersight:tamAdvisoryInstances \| dedup Advisory.Moid \| rename Advisory.BaseScore as CVSSBaseScore \| rename Advisory.AdvisoryId as Id \| rename Advisory.ObjectType as Type \| rename Advisory.Name as Name \| rename Advisory.Severity.Level as Severity \| rename Advisory.CveIds{} as Attached_CVEs \| table source, Name, Id, Type, CVSSBaseScore, Severity, Attached_CVEs` |
 | cisco:intersight:computePhysicalSummaries | `index=* sourcetype=cisco:intersight:computePhysicalSummaries \| dedup Moid \| rename NumCpuCoresEnabled as Cores \| rename TotalMemory as RAM \| eval RAM=RAM/1024 \| rename OperPowerState as Power \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Power, Name, Model,Serial, Firmware, Cores, RAM, Criticals, Warnings`
 | cisco:intersight:hyperflexClusters | `index=* sourcetype=cisco:intersight:hyperflexClusters \| dedup Moid \| rename Summary.ResiliencyInfo.State as State \| Table source,Name, State, HypervisorType,DeploymentType,DriveType,HxVersion,UtilizationPercentage`
+| cisco:intersight:hyperflexNodes | `index=* sourcetype=cisco:intersight:hyperflexNodes \| dedup Moid \| rename "Drives{}.Usage" as DriveUsage \| rename "EmptySlotsList{}" as EmptySlots \| eval PersistenceDiskCount=mvcount(mvfilter(match(DriveUsage, "PERSISTENCE"))) \| eval OpenDiskSlots=mvcount(EmptySlots) \| table source, HostName, ModelNumber, SerialNumber, Role, Hypervisor, Status, PersistenceDiskCount, OpenDiskSlots`
 | cisco:intersight:networkElementSummaries | `index=* sourcetype=cisco:intersight:networkElementSummaries \| dedup Moid \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Name, Model, Serial, Version, ManagementMode, Criticals, Warnings`
 | cisco:intersight:assetTargets | `index=* sourcetype=cisco:intersight:assetTargets \ dedup Moid \| table source, Name, Status, TargetType, ManagementLocation, ConnectorVersion`
 
-And just for fun, here's one more example where we combine the computePhyiscalSummaries and the networkElementSummaries into a combined table...
+And just a few more for fun...
+
+Here's an example where we join the computePhyiscalSummaries and the networkElementSummaries into a combined table...
 
 `index=* sourcetype="cisco:intersight:*Summaries" | dedup Moid | eval version=coalesce(Version,Firmware) | table source, Name, Model, Serial, version`
 
-### A note about aaaAuditRecords
+Here's an example where we join the Advisory instances to our other inventory types to provide a detailed view...
+
+`index=* sourcetype=cisco:intersight:tamAdvisoryInstances | dedup Moid | rename AffectedObjectType as type | rename Advisory.AdvisoryId as Id | rename Advisory.Severity.Level as Severity | join type=outer AffectedObjectMoid [search index=* (sourcetype="cisco:intersight:*Summaries" OR sourcetype=cisco:intersight:hyperflexClusters) | dedup Moid | rename Moid as AffectedObjectMoid | eval version=coalesce(Version,Firmware,HxVersion)] | sort Severity | table source, Id, Severity, Name, type, Model, Serial, version`
+
+Here's an example where we join the hyperflexCluster and hyperflexNodes to get an overview of the cluster that is slightly different than the one above, but it now includes counts of the converged nodes and compute-only nodes in the cluster...
+
+`index=* sourcetype=cisco:intersight:hyperflexNodes | dedup Moid | chart count by Cluster.Moid, Role | join Cluster.Moid [search index=* sourcetype=cisco:intersight:hyperflexClusters | dedup Moid | rename Moid as Cluster.Moid ] | rename STORAGE as ConvergedNodes | rename COMPUTE as ComputeOnlyNodes | rename Summary.DataReplicationFactor as RF | eval StorageCapacity.TB=round(StorageCapacity/1024/1024/1024/1024, 1) | rename UtilizationPercentage as Used | eval Used=round(Used, 0)."%" | rename Summary.ResiliencyInfo.NodeFailuresTolerable as FTT | rename HypervisorType as Hypervisor | fields source, ClusterName, DeploymentType, DriveType, Hypervisor, RF, FTT, ConvergedNodes, ComputeOnlyNodes, StorageCapacity.TB, Used`
+
+## A note about aaaAuditRecords
 
 The default maximum size for an event in splunk is 10KB.  It is possible (even likley) that you will have aaaAuditRecords that exceed this size.  While it is possible to increase this value so that Splunk can ingest these very large events, a look at the data indicates that the contents of the Results field was always the culprit and often not particularly useful in these large records.  If the event is less than 10KB in size, it passes through to Splunk with the Results JSON structure intact.  If the event would have exceeded 10k, the Results field is replaced with the value `TRUNCATED` so that the base audit log data is still available in Splunk and able to be extracted properly.  Such truncated records can be found using the following search.
 
@@ -105,3 +113,12 @@ The default maximum size for an event in splunk is 10KB.  It is possible (even l
 A further look at the data will indicate that most of these are actually related to routine processing of user preferences and filtering those out gives a much more valuable list of audit logs with truncated Results values.
 
 `index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name`
+
+[1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/get/
+[2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/get/
+[3]: https://intersight.com/apidocs/apirefs/api/v1/tam/AdvisoryInstances/get/
+[4]: https://intersight.com/apidocs/apirefs/api/v1/compute/PhysicalSummaries/get/
+[5]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Clusters/get/
+[6]: https://intersight.com/apidocs/apirefs/api/v1/network/ElementSummaries/get/
+[7]: https://intersight.com/apidocs/apirefs/api/v1/asset/Targets/get/
+[8]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Nodes/get/
