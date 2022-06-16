@@ -4,7 +4,7 @@ This project came about to fill a gap that I saw in the [Intersight](https://int
 
 This Splunk [Add-On](https://docs.splunk.com/Splexicon:Addon) begins to solve this problem by providing inputs for a number of Intersight data types.
 
-## How does it work?
+## Development Overview
 
 I used the [Splunk Add-on Builder](https://splunkbase.splunk.com/app/2962/) to create this Add-on.  This approach provides a solid framework to build a python-based input.
 
@@ -12,11 +12,11 @@ To authenticate to Intersight, I integrated code from the [intersight-auth](http
 
 From here, the bulk of the work is contained in [input_module_intersight.py](input_module_intersight.py) and the connectivity is done with simple usage of the Python Requests library.
 
-## How do I get it?
+## Distribution
 
-It is available from Splunkbase at [future URL].
+This add-on is available from Splunkbase at [future URL].
 
-## How do I configure it?
+## Deployment
 
 First, you will need an API key from Intersight.  For now, only v2 API keys will work.  Hopefully an update to intersight-auth will allow me to enable v3 keys in the future.  Remember that when you create an API key, it will provide access as the currently logged-in user in the current role.  You probably don't want to give Splunk an Account Administrator role API key.
 
@@ -26,11 +26,11 @@ Most of the functionality will work with an API key having the system defined Re
 
 ![Least-Privilige Role](images/role.png)
 
-Simply install the app and click on the Inputs tab.  Click the 'Create New Input' button to add an input for each Intersight account or appliance you wish use with Splunk.  Don't forget to scroll down!
+Simply install the app and click on the Inputs tab.  Click the 'Create New Input' button to add an input for each Intersight account or appliance you wish use with Splunk.  Don't forget to scroll down!  If you have multiple appliances or SaaS accounts (or a mix of both), you can add each of them as a separate Intput on this page.  SaaS inputs will retrieve the account name from Intersight as the source field, while appliances will use the value from Intersight Hostname as the source field.
 
 ![Add Intersight Input](images/add_intersight.png)
 
-### Fields on the Add Intersight dialog...
+## Fields on the Add Intersight dialog
 
 - Name : This name is the name of the input.  It isn't used elsewhere and can be a friendly name for the Intersight account.
 - Interval : This interval (in seconds) controls how often the input will retrieve data from Intersight.
@@ -48,9 +48,9 @@ Simply install the app and click on the Inputs tab.  Click the 'Create New Input
 - Enable Network Inventory : This checkbox enables the retrieval of Network (i.e. Fabric Interconnects, Nexus Switches, and MDS switches) inventory
 - Enable Target Inventory : This checkbox enables the retrieval of the target inventory.  This could include hardware, software, or cloud targets.
 
-## Where is the data in Splunk?
+## The data from Intersight in Splunk
 
-Each of the selectable options maps a specific API in Intersight to a unique sourcetype in Splunk.
+Each of the selectable options above maps a specific API in Intersight to a unique sourcetype in Splunk.
 
 | Checkbox | Intersight API | Splunk sourcetype |
 | --- | --- | --- |
@@ -78,20 +78,30 @@ In many cases, this will retrieve duplicate records as alarms are updated or inv
 
 `index=* sourcetype="cisco:intersight:computePhysicalSummaries" | dedup Moid`
 
-### How about some more examples...
+### More examples
 
-Sure.  One for each sourcetype...
+One for each sourcetype...
 
 | Splunk sourcetype | Example Search |
 | --- | --- |
 | cisco:intersight:aaaAuditRecords | `index=* sourcetype=cisco:intersight:aaaAuditRecords MoType!=iam.UserPreference \| rename MoType as Type \| rename MoDisplayNames.Name{} as Object \| eval Request=json_extract(_raw,"Request") \| table source, Email, Event, Type, Object, Request` |
 | cisco:intersight:condAlarms | `index=* sourcetype=cisco:intersight:condAlarms \| dedup Moid \| search Severity != Cleared \| rename AffectedMoDisplayName as AffectedDevice \| table source, Name, AffectedDevice, Severity, Description` |
 | cisco:intersight:tamAdvisoryInstances | `index=* sourcetype=cisco:intersight:tamAdvisoryInstances \| dedup Advisory.Moid \| rename Advisory.BaseScore as CVSSBaseScore \| rename Advisory.AdvisoryId as Id \| rename Advisory.ObjectType as Type \| rename Advisory.Name as Name \| rename Advisory.Severity.Level as Severity \| rename Advisory.CveIds{} as Attached_CVEs \| table source, Name, Id, Type, CVSSBaseScore, Severity, Attached_CVEs` |
-| cisco:intersight:computePhysicalSummaries | `index=* sourcetype="cisco:intersight:computePhysicalSummaries" \| dedup Moid \| rename NumCpuCoresEnabled as Cores \| rename TotalMemory as RAM \| eval RAM=RAM/1024 \| rename OperPowerState as Power \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Power, Name, Model,Serial, Firmware, Cores, RAM, Criticals, Warnings`
-| cisco:intersight:hyperflexClusters | `index=* sourcetype="cisco:intersight:hyperflexClusters" \| dedup Moid \| rename Summary.ResiliencyInfo.State as State \| Table source,Name, State, HypervisorType,DeploymentType,DriveType,HxVersion,UtilizationPercentage`
-| cisco:intersight:networkElementSummaries | `index=* sourcetype="cisco:intersight:networkElementSummaries" \| dedup Moid \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Name, Model, Serial, Version, ManagementMode, Criticals, Warnings`
-| cisco:intersight:assetTargets | `index=* sourcetype="cisco:intersight:assetTargets" \ dedup Moid \| table source, Name, Status, TargetType, ManagementLocation, ConnectorVersion`
+| cisco:intersight:computePhysicalSummaries | `index=* sourcetype=cisco:intersight:computePhysicalSummaries \| dedup Moid \| rename NumCpuCoresEnabled as Cores \| rename TotalMemory as RAM \| eval RAM=RAM/1024 \| rename OperPowerState as Power \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Power, Name, Model,Serial, Firmware, Cores, RAM, Criticals, Warnings`
+| cisco:intersight:hyperflexClusters | `index=* sourcetype=cisco:intersight:hyperflexClusters \| dedup Moid \| rename Summary.ResiliencyInfo.State as State \| Table source,Name, State, HypervisorType,DeploymentType,DriveType,HxVersion,UtilizationPercentage`
+| cisco:intersight:networkElementSummaries | `index=* sourcetype=cisco:intersight:networkElementSummaries \| dedup Moid \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Name, Model, Serial, Version, ManagementMode, Criticals, Warnings`
+| cisco:intersight:assetTargets | `index=* sourcetype=cisco:intersight:assetTargets \ dedup Moid \| table source, Name, Status, TargetType, ManagementLocation, ConnectorVersion`
 
 And just for fun, here's one more example where we combine the computePhyiscalSummaries and the networkElementSummaries into a combined table...
 
 `index=* sourcetype="cisco:intersight:*Summaries" | dedup Moid | eval version=coalesce(Version,Firmware) | table source, Name, Model, Serial, version`
+
+### A note about aaaAuditRecords
+
+The default maximum size for an event in splunk is 10KB.  It is possible (even likley) that you will have aaaAuditRecords that exceed this size.  While it is possible to increase this value so that Splunk can ingest these very large events, a look at the data indicates that the contents of the Results field was always the culprit and often not particularly useful in these large records.  If the event is less than 10KB in size, it passes through to Splunk with the Results JSON structure intact.  If the event would have exceeded 10k, the Results field is replaced with the value `TRUNCATED` so that the base audit log data is still available in Splunk and able to be extracted properly.  Such truncated records can be found using the following search.
+
+`index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED`
+
+A further look at the data will indicate that most of these are actually related to routine processing of user preferences and filtering those out gives a much more valuable list of audit logs with truncated Results values.
+
+`index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name`
