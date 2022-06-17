@@ -6,11 +6,11 @@ This Splunk [Add-On](https://docs.splunk.com/Splexicon:Addon) begins to solve th
 
 ## Development Overview
 
-I used the [Splunk Add-on Builder](https://splunkbase.splunk.com/app/2962/) to create this Add-on.  This approach provides a solid framework to build a python-based input.
+I used the [Splunk Add-on Builder](https://splunkbase.splunk.com/app/2962/) to create this Add-on.  This approach provides a solid framework to build a python-based [scripted input](https://docs.splunk.com/Splexicon:Scriptedinput).
 
-To authenticate to Intersight, I integrated code from the [intersight-auth](https://github.com/cgascoig/intersight-auth) library while making some modifications for this use case.  I also had to bundle in some of it's dependencies, including... cffi, cryptography, pycparser, cffi.libs and _cffi_backend.  I added these libraries to Splunk Add-on Builder (for me, /opt/splunk/etc/apps/splunk_app_addon-builder/bin/ta_generator/resources_lib/aob_py3) manually to have it bundle them in the distibutable package for me.
+Intersight uses API keys to cryptographically sign API requests.  To sign requests to Intersight, I integrated code from the [intersight-auth](https://github.com/cgascoig/intersight-auth) library while making some modifications for this use case.  I also had to bundle in some of it's dependencies, including... cffi, cryptography, pycparser, cffi.libs and _cffi_backend.  I added these libraries to Splunk Add-on Builder (for me, /opt/splunk/etc/apps/splunk_app_addon-builder/bin/ta_generator/resources_lib/aob_py3) manually to have it bundle them in the distibutable package for me.
 
-From here, the bulk of the work is contained in [input_module_intersight.py](input_module_intersight.py) and the connectivity is done with simple usage of the Python Requests library.
+From here, the bulk of the work is contained in [input_module_intersight.py](input_module_intersight.py) and the connectivity is done with relatively straightforward usage of the Python Requests library.
 
 ## Distribution
 
@@ -18,7 +18,7 @@ This add-on is available from Splunkbase at [future URL].
 
 ## Deployment
 
-First, you will need an API key from Intersight.  For now, only v2 API keys will work.  Hopefully an update to intersight-auth will allow me to enable v3 keys in the future.  Remember that when you create an API key, it will provide access as the currently logged-in user in the current role.  You probably don't want to give Splunk an Account Administrator role API key.
+This Add-on will need an API key from Intersight.  For now, only v2 API keys will work.  Hopefully an update to intersight-auth will allow me to enable v3 keys in the future.  Remember that when you create an API key, it will provide access as the currently logged-in user in the current role.  You probably don't want to give Splunk an Account Administrator role API key.
 
 ![Generate an API Key](images/generate_api_key.png)
 
@@ -26,19 +26,19 @@ Most of the functionality will work with an API key having the system defined Re
 
 ![Least-Privilige Role](images/role.png)
 
-Simply install the app and click on the Inputs tab.  Click the 'Create New Input' button to add an input for each Intersight account or appliance you wish use with Splunk.  Don't forget to scroll down!  If you have multiple appliances or SaaS accounts (or a mix of both), you can add each of them as a separate Intput on this page.  SaaS inputs will retrieve the account name from Intersight as the source field, while appliances will use the value from Intersight Hostname as the source field.
+Simply install the app and click on the Inputs tab.  Click the 'Create New Input' button to add an input for each Intersight account or appliance you wish use with Splunk.  Don't forget to scroll down!  If you have multiple appliances or SaaS accounts (or a mix of both), you can add each of them as a separate Input on this page.  SaaS inputs will retrieve the account name from Intersight as the source field, while appliances will use the value from Intersight Hostname as the source field.
 
 ![Add Intersight Input](images/add_intersight.png)
 
 ## Fields on the Add Intersight dialog
 
-- Name : This name is the name of the input.  It isn't used elsewhere and can be a friendly name for the Intersight account.
+- Name : This name is the name of the input.  It isn't used anywhere except the Add-on logs (see [Troubleshooting](#troubleshooting)) and can be a friendly name for the Intersight account.
 - Interval : This interval (in seconds) controls how often the input will retrieve data from Intersight.
 - Index : The name of the Splunk index (which needs to already exist!) where the data should be stored.
 - Intersight Hostname : This field should keep the default of 'www.intersight.com' for SaaS instances of Intersight.  For On-Premise Intersight Appliances (sometimes known as Connected Virtual Appliance or Private Virtual Appliance), set this field to the FQDN of the appliance.
-- Validate SSL Certificate : This box should remain checked for SaaS instances of Intersight.  Sometimes an on-premise appliance will use a self-signed certificate that this Add-on will not know to trust or perhaps your network will have an inline security appliance that does SSL interception.  In any case, this setting allows us to ignore the validity of the SSL certificate.  See [troubleshooting] for more details on how to see that this is happening.
+- Validate SSL Certificate : This box should remain checked for SaaS instances of Intersight.  Sometimes an on-premise appliance will use a self-signed certificate that this Add-on will not know to trust or perhaps your network will have an inline security appliance that does SSL interception.  In any case, this setting allows us to ignore the validity of the SSL certificate.  See [Troubleshooting](#troubleshooting) for more details on how to see that this is happening.
 - API Key Id : This will be the public half of the API key from Intersight.
-- API Secret Key : This will be the secret half of the API key from Intersight.  It will be in [PEM formatted binary data](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) and you can paste the entire key including the header and footer into this field.
+- API Secret Key : This will be the secret half of the API key from Intersight.  It will be [PEM formatted binary data](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) and you can paste the entire key including the header and footer into this field.
 - Enable AAA Audit Records : This checkbox enables the input for activity audit logs from Intersight.  The Read-Only role does not have access to these.  See Least-Privilige Role above.  Also, be aware that this input will not go back to the beginning of time and import all Audit records.    The input has a static configuration to import records that have a ModTime in the last two days at the initial run.
 - Enable Alarms : This checkbox enables the input for alarms from Intersight.  Be aware that this input will not go back to the beginning of time and import all Alarms.  The input has a static configuration to import Alarms that have a ModTime in the last two days at the initial run.
 - Inventory Interval : All of the 'Enable' checkboxes below this point don't need to be imported from Intersight at every interval in a typical environment.  This value selects how many intervals should occur between inports of these items.  A selection of `1` here will import them on every interval.  Perhaps if the Interval above is `60` seconds, then an Inventory Interval here of `300` will cause inventory and advisories to be imported a few times a day on every 300th run of this input.  This is a sensible way to reduce the repetitive input of data that doesn't chagne that often.
@@ -98,7 +98,7 @@ Here's an example where we join the computePhyiscalSummaries and the networkElem
 
 Here's an example where we join the Advisory instances to our other inventory types to provide a detailed view...
 
-`index=* sourcetype=cisco:intersight:tamAdvisoryInstances | dedup Moid | rename AffectedObjectType as type | rename Advisory.AdvisoryId as Id | rename Advisory.Severity.Level as Severity | join type=outer AffectedObjectMoid [search index=* (sourcetype="cisco:intersight:*Summaries" OR sourcetype=cisco:intersight:hyperflexClusters) | dedup Moid | rename Moid as AffectedObjectMoid | eval version=coalesce(Version,Firmware,HxVersion)] | sort Severity | table source, Id, Severity, Name, type, Model, Serial, version`
+`index=* sourcetype=cisco:intersight:tamAdvisoryInstances | dedup Moid | rename AffectedObjectType as type | rename Advisory.AdvisoryId as Id | rename Advisory.Severity.Level as Severity | join type=outer AffectedObjectMoid [search index=* (sourcetype="cisco:intersight:*Summaries" OR sourcetype=cisco:intersight:hyperflexClusters) | dedup Moid | rename Moid as AffectedObjectMoid | eval version=coalesce(Version,Firmware,HxVersion) | eval Model=coalesce(Model,DeploymentType+" "+DriveType)] | sort Severity | table source, Id, Severity, Name, type, Model, Serial, version`
 
 Here's an example where we join the hyperflexCluster and hyperflexNodes to get an overview of the cluster that is slightly different than the one above, but it now includes counts of the converged nodes and compute-only nodes in the cluster...
 
@@ -113,6 +113,66 @@ The default maximum size for an event in splunk is 10KB.  It is possible (even l
 A further look at the data will indicate that most of these are actually related to routine processing of user preferences and filtering those out gives a much more valuable list of audit logs with truncated Results values.
 
 `index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name`
+
+## Troubleshooting
+
+The most useful thing will be the log file from the Add-on.  This will be called `ta_intersight_addon_intersight.log`.  I suggest tailing this log if you're trying to figure out what is happening.  Adjust the path to get to your Splunk directory as necessary...
+
+`tail -f /opt/splunk/var/log/splunk/ta_intersight_addon_intersight.log`
+
+Note that if you have multiple inputs (i.e. different Intersight accounts/appliances) configured in the Add-on, the log messages for all of the configured inputs will be interspersed.  The Name from the 'Add Input' dialog above is used in the log to differentiate.  In these logs, the name EXAMPLE was used.
+
+A normal run without inventory might look like this...
+
+``` LOG
+2022-06-17 13:18:56,630 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Starting input named EXAMPLE
+2022-06-17 13:18:56,860 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Connected to Intersight SaaS account named jerewill-dev
+2022-06-17 13:18:56,860 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Alarms...
+2022-06-17 13:18:56,860 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Audit Records...
+2022-06-17 13:18:57,012 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Skipping Advisories and Inventories this inverval.
+2022-06-17 13:18:57,038 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | FINISHED
+```
+
+A normal run with inventory might look like this...
+
+``` LOG
+2022-06-16 16:21:04,848 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Starting input named EXAMPLE
+2022-06-16 16:21:05,151 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Connected to Intersight SaaS account named EXAMPLE
+2022-06-16 16:21:05,151 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Audit Records...
+2022-06-16 16:21:05,445 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Alarms...
+2022-06-16 16:21:05,624 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Advisories...
+2022-06-16 16:21:05,843 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving compute inventory...
+2022-06-16 16:21:06,506 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving network inventory...
+2022-06-16 16:21:06,979 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving target inventory...
+2022-06-16 16:21:07,536 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Hyperflex cluster inventory...
+2022-06-16 16:21:07,793 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | FINISHED
+```
+
+A log message like this would indicate that Splunk can't connect to an Interisght on-premise appliance.  Verify connectivity, DNS resolution, and if all else fails try unchecking the 'Validate SSL Certificate' checkbox on the Input.
+
+``` log
+2022-06-16 15:08:00,137 CRITICAL pid=12061 tid=MainThread file=base_modinput.py:log_critical:316 | EXAMPLE | Unable to connect to Intersight server at intersight.example.local
+```
+
+A log message like this indicates that you put something other than an FQDN as the Intersight Hostname value.  The Add-on isn't asking for a URL in that field.  Please provide just the fully-qualified domain name.
+
+``` log
+2022-06-16 15:07:53,922 CRITICAL pid=12052 tid=MainThread file=base_modinput.py:log_critical:316 | EXAMPLE | INVALID HOSTNAME... configured value is https://intersight.example.local/
+```
+
+A log message like this indicates that Splunk can't connect to the Intersight SaaS platform.  Verify connectivity and DNS resolution.
+
+``` log
+2022-06-16 15:01:22,013 CRITICAL pid=12044 tid=MainThread file=base_modinput.py:log_critical:316 | EXAMPLE | Unable to connect to Intersight SaaS
+```
+
+The default logging level here will be `info` but additional detail can be enabled by changing the logging level on the configuration tab of the Add-on as seen below.
+
+![Logging](images/logging.png)
+
+## Known Issues
+
+[See Issues on Github](https://github.com/jerewill-cisco/intersight-splunk-addon/issues/)
 
 [1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/get/
 [2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/get/
