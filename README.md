@@ -39,7 +39,7 @@ Simply install the app and click on the Inputs tab.  Click the 'Create New Input
 ## Fields on the Add Intersight dialog
 
 - Name : This name is the name of the input.  It isn't used anywhere except the Add-on logs (see [Troubleshooting](#troubleshooting)) and can be a friendly name for the Intersight account.
-- Interval : This interval (in seconds) controls how often the input will retrieve data from Intersight.
+- Interval : This interval (in seconds) controls how often the input will retrieve data from Intersight.  I think `60` seconds is probably ideal, but anything between `30` seconds and `300` seconds is probably reasonable.
 - Index : The name of the Splunk index (which needs to already exist!) where the data should be stored.
 - Intersight Hostname : This field should keep the default of 'www.intersight.com' for SaaS instances of Intersight.  For On-Premise Intersight Appliances (sometimes known as Connected Virtual Appliance or Private Virtual Appliance), set this field to the FQDN of the appliance.
 - Validate SSL Certificate : This box should remain checked for SaaS instances of Intersight.  Sometimes an on-premise appliance will use a self-signed certificate that this Add-on will not know to trust or perhaps your network will have an inline security appliance that does SSL interception.  In any case, this setting allows us to ignore the validity of the SSL certificate.  See [Troubleshooting](#troubleshooting) for more details on how to see that this is happening.
