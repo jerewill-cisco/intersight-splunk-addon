@@ -16,7 +16,7 @@ From here, the bulk of the work is contained in [input_module_intersight.py](inp
 
 ## Distribution
 
-This Add-on is available from Splunkbase at [future URL].
+This Add-on is available [from Splunkbase](https://splunkbase.splunk.com/app/6482/).
 
 Please review [the release notes](splunkbase/releasenotes.md).
 

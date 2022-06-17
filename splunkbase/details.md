@@ -1,7 +1,3 @@
-# Cisco Intersight Add-on for Splunk
-
-The Cisco Intersight Add-on for Splunk (TA-intersight-addon) provides a python-based scripted input to retrieve data from Cisco Intersight. SaaS, Connected Virtual Appliance, and Private Virtual Appliance deployments of Intersight are all supported.
-
 The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/apidocs/introduction/overview/) to retrieve various kinds of data. Multiple inputs for different Intersight accounts/appliances are configurable and each account/appliance can optionally retrieve the following data types. Events are in JSON format.
 
 | Options | Intersight API | Splunk sourcetype |
@@ -27,4 +23,5 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 Further documentation, sample searches, and known issues are all available at [the Github repository](https://github.com/jerewill-cisco/intersight-splunk-addon).
 
 ---
+
 This Add-on is community developed and is not supported by Cisco Systems or the Cisco Technical Assistance Center (TAC).
