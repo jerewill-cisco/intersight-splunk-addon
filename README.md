@@ -1,8 +1,10 @@
-# Intersight Add-on for Splunk
+# Cisco Intersight Add-on for Splunk
 
-This project came about to fill a gap that I saw in the [Intersight](https://intersight.com/help/saas) ecosystem.  How can you get useful data from Intersight into Splunk?  Since Intersight uses a unique API authentication scheme, simple REST API inputs could not be used.
+This project came about to fill a gap that I saw in the [Cisco Intersight](https://intersight.com/help/saas) ecosystem.  How can you get useful data from Intersight into Splunk?  Since Intersight uses a unique API authentication scheme, simple REST API inputs could not be used.
 
 This Splunk [Add-On](https://docs.splunk.com/Splexicon:Addon) begins to solve this problem by providing inputs for a number of Intersight data types.
+
+This Add-on is not supported by Cisco Systems or the Cisco Technical Assistance Center (TAC).  It was developed by me, as a member of the community.
 
 ## Development Overview
 
@@ -14,11 +16,15 @@ From here, the bulk of the work is contained in [input_module_intersight.py](inp
 
 ## Distribution
 
-This add-on is available from Splunkbase at [future URL].
+This Add-on is available from Splunkbase at [future URL].
+
+Please review [the release notes](splunkbase/releasenotes.md).
 
 ## Deployment
 
-This Add-on will need an API key from Intersight.  For now, only v2 API keys will work.  Hopefully an update to intersight-auth will allow me to enable v3 keys in the future.  Remember that when you create an API key, it will provide access as the currently logged-in user in the current role.  You probably don't want to give Splunk an Account Administrator role API key.
+Typically, this Add-on would be installed on an indexer in your Splunk architecture.
+
+The Add-on will need an API key from Intersight.  For now, only v2 API keys will work.  Hopefully an update to intersight-auth will allow me to enable v3 keys in the future.  Remember that when you create an API key, it will provide access as the currently logged-in user in the current role.  You probably don't want to give Splunk an Account Administrator role API key.
 
 ![Generate an API Key](images/generate_api_key.png)
 
@@ -174,11 +180,11 @@ The default logging level here will be `info` but additional detail can be enabl
 
 [See Issues on Github](https://github.com/jerewill-cisco/intersight-splunk-addon/issues/)
 
-[1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/get/
-[2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/get/
-[3]: https://intersight.com/apidocs/apirefs/api/v1/tam/AdvisoryInstances/get/
-[4]: https://intersight.com/apidocs/apirefs/api/v1/compute/PhysicalSummaries/get/
-[5]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Clusters/get/
-[6]: https://intersight.com/apidocs/apirefs/api/v1/network/ElementSummaries/get/
-[7]: https://intersight.com/apidocs/apirefs/api/v1/asset/Targets/get/
-[8]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Nodes/get/
+[1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/model/
+[2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/model/
+[3]: https://intersight.com/apidocs/apirefs/api/v1/tam/AdvisoryInstances/model/
+[4]: https://intersight.com/apidocs/apirefs/api/v1/compute/PhysicalSummaries/model/
+[5]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Clusters/model/
+[6]: https://intersight.com/apidocs/apirefs/api/v1/network/ElementSummaries/model/
+[7]: https://intersight.com/apidocs/apirefs/api/v1/asset/Targets/model/
+[8]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Nodes/model/
