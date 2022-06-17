@@ -24,7 +24,7 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 [7]: https://intersight.com/apidocs/apirefs/api/v1/asset/Targets/model/
 [8]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Nodes/model/
 
-Further documentation, sample searches, and known issues are all available at [the Github repository](https://github.com/jerewill-cisco/intersight-splunk-addon). 
+Further documentation, sample searches, and known issues are all available at [the Github repository](https://github.com/jerewill-cisco/intersight-splunk-addon).
 
 ---
 This Add-on is community developed and is not supported by Cisco Systems or the Cisco Technical Assistance Center (TAC).
