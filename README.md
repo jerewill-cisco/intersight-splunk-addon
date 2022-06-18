@@ -10,7 +10,7 @@ This Add-on is not supported by Cisco Systems or the Cisco Technical Assistance 
 
 I used the [Splunk Add-on Builder](https://splunkbase.splunk.com/app/2962/) to create this Add-on.  This approach provides a solid framework to build a python-based [scripted input](https://docs.splunk.com/Splexicon:Scriptedinput).
 
-Intersight uses API keys to cryptographically sign API requests.  To sign requests to Intersight, I integrated code from the [intersight-auth](https://github.com/cgascoig/intersight-auth) library while making some modifications for this use case.  I also had to bundle in some of it's dependencies, including... cffi, cryptography, pycparser, cffi.libs and _cffi_backend.  I added these libraries to Splunk Add-on Builder (for me, /opt/splunk/etc/apps/splunk_app_addon-builder/bin/ta_generator/resources_lib/aob_py3) manually to have it bundle them in the distibutable package for me.
+Intersight uses API keys to cryptographically sign API requests.  To sign requests to Intersight, I integrated code from the [intersight-auth](https://github.com/cgascoig/intersight-auth) library while making some modifications for this use case.  I also had to bundle in some of it's dependencies, including... cffi, cryptography, pycparser, cffi.libs and _cffi_backend.  I added these libraries to Splunk Add-on Builder (for me, /opt/splunk/etc/apps/splunk_app_addon-builder/bin/ta_generator/resources_lib/aob_py3) manually to have it bundle them in the distributable package for me.
 
 From here, the bulk of the work is contained in [input_module_intersight.py](input_module_intersight.py) and the connectivity is done with relatively straightforward usage of the Python Requests library.
 
@@ -28,7 +28,7 @@ The Add-on will need an API key from Intersight.  For now, only v2 API keys will
 
 ![Generate an API Key](images/generate_api_key.png)
 
-Most of the functionality will work with an API key having the system defined Read-Only role.  But to get the Audit Logs while maintainig a least privilige access model, I would suggest that you create a custom role that includes the Read-Only and Audit Log Viewer privleges.  Login to Intersight using this role to create the API key.
+Most of the functionality will work with an API key having the system defined Read-Only role.  But to get the Audit Logs while maintaining a least privilege access model, I would suggest that you create a custom role that includes the Read-Only and Audit Log Viewer privileges.  Login to Intersight using this role to create the API key.
 
 ![Least-Privilige Role](images/role.png)
 
@@ -45,9 +45,9 @@ Simply install the app and click on the Inputs tab.  Click the 'Create New Input
 - Validate SSL Certificate : This box should remain checked for SaaS instances of Intersight.  Sometimes an on-premise appliance will use a self-signed certificate that this Add-on will not know to trust or perhaps your network will have an inline security appliance that does SSL interception.  In any case, this setting allows us to ignore the validity of the SSL certificate.  See [Troubleshooting](#troubleshooting) for more details on how to see that this is happening.
 - API Key Id : This will be the public half of the API key from Intersight.
 - API Secret Key : This will be the secret half of the API key from Intersight.  It will be [PEM formatted binary data](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) and you can paste the entire key including the header and footer into this field.
-- Enable AAA Audit Records : This checkbox enables the input for activity audit logs from Intersight.  The Read-Only role does not have access to these.  See Least-Privilige Role above.  Also, be aware that this input will not go back to the beginning of time and import all Audit records.    The input has a static configuration to import records that have a ModTime in the last two days at the initial run.
+- Enable AAA Audit Records : This checkbox enables the input for activity audit logs from Intersight.  The Read-Only role does not have access to these.  See Least-Privilege Role above.  Also, be aware that this input will not go back to the beginning of time and import all Audit records.    The input has a static configuration to import records that have a ModTime in the last two days at the initial run.
 - Enable Alarms : This checkbox enables the input for alarms from Intersight.  Be aware that this input will not go back to the beginning of time and import all Alarms.  The input has a static configuration to import Alarms that have a ModTime in the last two days at the initial run.
-- Inventory Interval : All of the 'Enable' checkboxes below this point don't need to be imported from Intersight at every interval in a typical environment.  This value selects how many intervals should occur between inports of these items.  A selection of `1` here will import them on every interval.  Perhaps if the Interval above is `60` seconds, then an Inventory Interval here of `300` will cause inventory and advisories to be imported a few times a day on every 300th run of this input.  This is a sensible way to reduce the repetitive input of data that doesn't chagne that often.
+- Inventory Interval : All of the 'Enable' checkboxes below this point don't need to be imported from Intersight at every interval in a typical environment.  This value selects how many intervals should occur between imports of these items.  A selection of `1` here will import them on every interval.  Perhaps if the Interval above is `60` seconds, then an Inventory Interval here of `300` will cause inventory and advisories to be imported a few times a day on every 300th run of this input.  This is a sensible way to reduce the repetitive input of data that doesn't change that often.
 - Enable Advisories : This checkbox enables the retrieval of Advisories.
 - Enable Compute Inventory : This checkbox enables the retrieval of compute (i.e. server) inventory.
 - Enable HX Cluster Inventory : This checkbox enables the retrieval of Hyperflex Cluster inventory.
@@ -79,7 +79,7 @@ In many cases, this will retrieve duplicate records as alarms are updated or inv
 
 The technique of using `| dedup Moid` is applicable to all sourcetypes except cisco:intersight:aaaAuditRecords and should be used in most circumstances.
 
-You may also notice, if you are very famililar with the Intersight API, that there are a few nodes of JSON that are missing in Splunk that are present elsewhere.  This is due to some editorial pruning that is occuring in the Add-on.  There are some object references in the API results that simply don't serve any purpose in Splunk.  The Add-on is pruning these to improve the overall experience and optimize the amount of data that gets pushed to Splunk.
+You may also notice, if you are very familiar with the Intersight API, that there are a few nodes of JSON that are missing in Splunk that are present elsewhere.  This is due to some editorial pruning that is occurring in the Add-on.  There are some object references in the API results that simply don't serve any purpose in Splunk.  The Add-on is pruning these to improve the overall experience and optimize the amount of data that gets pushed to Splunk.
 
 ## More examples
 
@@ -98,7 +98,7 @@ One for each sourcetype...
 
 And just a few more for fun...
 
-Here's an example where we join the computePhyiscalSummaries and the networkElementSummaries into a combined table...
+Here's an example where we join the computePhysicalSummaries and the networkElementSummaries into a combined table...
 
 `index=* sourcetype="cisco:intersight:*Summaries" | dedup Moid | eval version=coalesce(Version,Firmware) | table source, Name, Model, Serial, version`
 
@@ -112,7 +112,7 @@ Here's an example where we join the hyperflexCluster and hyperflexNodes to get a
 
 ## A note about aaaAuditRecords
 
-The default maximum size for an event in splunk is 10KB.  It is possible (even likley) that you will have aaaAuditRecords that exceed this size.  While it is possible to increase this value so that Splunk can ingest these very large events, a look at the data indicates that the contents of the Results field was always the culprit and often not particularly useful in these large records.  If the event is less than 10KB in size, it passes through to Splunk with the Results JSON structure intact.  If the event would have exceeded 10k, the Results field is replaced with the value `TRUNCATED` so that the base audit log data is still available in Splunk and able to be extracted properly.  Such truncated records can be found using the following search.
+The default maximum size for an event in splunk is 10KB.  It is possible (even likely) that you will have aaaAuditRecords that exceed this size.  While it is possible to increase this value so that Splunk can ingest these very large events, a look at the data indicates that the contents of the Results field was always the culprit and often not particularly useful in these large records.  If the event is less than 10KB in size, it passes through to Splunk with the Results JSON structure intact.  If the event would have exceeded 10k, the Results field is replaced with the value `TRUNCATED` so that the base audit log data is still available in Splunk and able to be extracted properly.  Such truncated records can be found using the following search.
 
 `index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED`
 
@@ -154,7 +154,7 @@ A normal run with inventory might look like this...
 2022-06-16 16:21:07,793 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | FINISHED
 ```
 
-A log message like this would indicate that Splunk can't connect to an Interisght on-premise appliance.  Verify connectivity, DNS resolution, and if all else fails try unchecking the 'Validate SSL Certificate' checkbox on the Input.
+A log message like this would indicate that Splunk can't connect to an Intersight on-premise appliance.  Verify connectivity, DNS resolution, and if all else fails try un-checking the 'Validate SSL Certificate' checkbox on the Input.
 
 ``` log
 2022-06-16 15:08:00,137 CRITICAL pid=12061 tid=MainThread file=base_modinput.py:log_critical:316 | EXAMPLE | Unable to connect to Intersight server at intersight.example.local
