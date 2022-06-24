@@ -4,16 +4,11 @@
 import datetime
 import json
 import re
-from base64 import b64encode
-from email.utils import formatdate
 import sys
+from types import SimpleNamespace
 
 import requests
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from requests.auth import AuthBase
-from six.moves.urllib.parse import urlparse
+from intersight_auth import IntersightAuth, repair_pem
 
 
 def validate_input(helper, definition):
@@ -38,32 +33,39 @@ def collect_events(helper, ew):
     opt_validate_ssl = helper.get_arg('validate_ssl')
     opt_enable_aaa_audit_records = helper.get_arg('enable_aaa_audit_records')
     opt_enable_alarms = helper.get_arg('enable_alarms')
-    opt_enable_advisories = helper.get_arg('enable_advisories')
-    opt_enable_compute_inventory = helper.get_arg('enable_compute_inventory')
-    opt_enable_network_inventory = helper.get_arg('enable_network_inventory')
-    opt_enable_hx_cluster_inventory = helper.get_arg(
-        'enable_hx_cluster_inventory')
-    opt_enable_target_inventory = helper.get_arg('enable_target_inventory')
     opt_inventory_interval = helper.get_arg('inventory_interval')
+    opt_inventory = helper.get_arg('inventory')
 
-    # The following examples get options from setup page configuration.
-    # Neither are in use yet...
-    # get the loglevel from the setup page
-    #loglevel = helper.get_log_level()
     # get proxy setting configuration
-    #proxy_settings = helper.get_proxy()
+    proxy = SimpleNamespace(**helper.get_proxy())
+
+    if len(proxy.__dict__) == 0:
+        # if `Enable proxy` is not checked, the dict will be empty
+        r_proxy = {'https': None}
+        helper.log_debug(stanza_name + ' | ' + "Proxy is not configured")
+    else:
+        if proxy.proxy_type != 'http':
+            raise Exception("Only HTTP proxy type is implemented")
+        if proxy.proxy_username and proxy.proxy_password:
+            r_proxy = {"https": "http://"+proxy.proxy_username+":" +
+                       proxy.proxy_password+"@"+proxy.proxy_url+":"+proxy.proxy_port}
+            helper.log_debug(stanza_name + ' | ' + "Proxy is " +
+                             proxy.proxy_url+":"+proxy.proxy_port + " with authentication")
+        else:
+            r_proxy = {"https": "http://"+proxy.proxy_url+":"+proxy.proxy_port}
+            helper.log_debug(stanza_name + ' | ' + "Proxy is " +
+                             proxy.proxy_url+":"+proxy.proxy_port)
 
     # get the configured index
     index = helper.get_output_index()
     helper.log_debug(stanza_name + ' | ' + "Configured index is " + index)
 
     # Fix the private key after if passes through Splunk's UI
-    repaired_pem = r'-----BEGIN RSA PRIVATE KEY-----'+'\n'+re.sub('(.{64})', '\\1\n', re.sub(
-        r'-----.*?-----', '', opt_api_secret_key).replace(' ', ''))+'\n'+r'-----END RSA PRIVATE KEY-----'+'\n'
+    repaired_pem = repair_pem(opt_api_secret_key)
 
     # Build the AUTH object to sign API calls
     AUTH = IntersightAuth(
-        secret_key_filename=repaired_pem,
+        secret_key_string=repaired_pem,
         api_key_id=opt_api_key_id
     )
 
@@ -81,7 +83,8 @@ def collect_events(helper, ew):
                 method='GET',
                 url='https://'+opt_intersight_hostname+'/api/v1/iam/Accounts?$select=Name',
                 auth=AUTH,
-                verify=opt_validate_ssl
+                verify=opt_validate_ssl,
+                proxies=r_proxy
             )
             account_name = RESPONSE.json()['Results'][0]['Name']
             helper.log_info(
@@ -98,7 +101,8 @@ def collect_events(helper, ew):
                     method='GET',
                     url='https://'+opt_intersight_hostname+'/api/v1/iam/UserPreferences',
                     auth=AUTH,
-                    verify=opt_validate_ssl
+                    verify=opt_validate_ssl,
+                    proxies=r_proxy
                 )
                 account_name = opt_intersight_hostname
                 helper.log_info(
@@ -139,7 +143,8 @@ def collect_events(helper, ew):
             url='https://'+opt_intersight_hostname +
                 '/api/v1/aaa/AuditRecords?$orderby=ModTime%20asc&$filter=ModTime%20gt%20'+state,
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
 
         # Process the audit records
@@ -196,7 +201,8 @@ def collect_events(helper, ew):
             url='https://'+opt_intersight_hostname +
                 '/api/v1/cond/Alarms?$orderby=ModTime%20asc&$filter=ModTime%20gt%20'+state,
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
 
         # Process the alarm records
@@ -261,14 +267,15 @@ def collect_events(helper, ew):
     # Advisories
     ##
 
-    if opt_enable_advisories and doInventory:
+    if 'advisories' in opt_inventory and doInventory:
         helper.log_info(stanza_name + ' | ' + "Retrieving Advisories...")
         RESPONSE = requests.request(
             method='GET',
             url='https://'+opt_intersight_hostname +
                 '/api/v1/tam/AdvisoryInstances?$count=True',
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
         count = RESPONSE.json()['Count']
         helper.log_debug(stanza_name + ' | ' + "Found " +
@@ -281,7 +288,8 @@ def collect_events(helper, ew):
                     '/api/v1/tam/AdvisoryInstances?$expand=Advisory&$top=' +
                 str(results_per_page)+'&$skip='+str(i),
                 auth=AUTH,
-                verify=opt_validate_ssl
+                verify=opt_validate_ssl,
+                proxies=r_proxy
             )
 
             for data in RESPONSE.json()['Results']:
@@ -303,7 +311,7 @@ def collect_events(helper, ew):
     # Compute Inventory
     ###
 
-    if opt_enable_compute_inventory and doInventory:
+    if 'compute' in opt_inventory and doInventory:
         helper.log_info(stanza_name + ' | ' +
                         "Retrieving compute inventory...")
         RESPONSE = requests.request(
@@ -311,7 +319,8 @@ def collect_events(helper, ew):
             url='https://'+opt_intersight_hostname +
                 '/api/v1/compute/PhysicalSummaries?$count=True',
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
         count = RESPONSE.json()['Count']
         helper.log_debug(stanza_name + ' | ' + "Found " +
@@ -324,7 +333,8 @@ def collect_events(helper, ew):
                     '/api/v1/compute/PhysicalSummaries?$top=' +
                 str(results_per_page)+'&$skip='+str(i),
                 auth=AUTH,
-                verify=opt_validate_ssl
+                verify=opt_validate_ssl,
+                proxies=r_proxy
             )
 
             for data in RESPONSE.json()['Results']:
@@ -341,10 +351,101 @@ def collect_events(helper, ew):
         helper.log_debug(stanza_name + ' | ' + "Skipping compute inventory.")
 
     ###
+    # Compute HCL Status
+    ###
+
+    if 'compute' in opt_inventory and doInventory:
+        helper.log_info(stanza_name + ' | ' +
+                        "Retrieving compute HCL status...")
+        RESPONSE = requests.request(
+            method='GET',
+            url='https://'+opt_intersight_hostname +
+                '/api/v1/cond/HclStatuses?$count=True',
+            auth=AUTH,
+            verify=opt_validate_ssl,
+            proxies=r_proxy
+        )
+        count = RESPONSE.json()['Count']
+        helper.log_debug(stanza_name + ' | ' + "Found " +
+                         str(count) + " inventory records to retrieve...")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = requests.request(
+                method='GET',
+                url='https://'+opt_intersight_hostname +
+                    '/api/v1/cond/HclStatuses?$top=' +
+                str(results_per_page)+'&$skip='+str(i),
+                auth=AUTH,
+                verify=opt_validate_ssl,
+                proxies=r_proxy
+            )
+
+            for data in RESPONSE.json()['Results']:
+                # remove things that just aren't helpful in splunk
+                for thepop in ['Ancestors', 'Details', 'Owners', 'PermissionResources', 'RegisteredDevice']:
+                    data.pop(thepop)
+                for thepop in ['ClassId', 'link']:
+                    data['ManagedObject'].pop(thepop)
+                event = helper.new_event(
+                    source=account_name, index=index, sourcetype='cisco:intersight:condHclStatuses', data=json.dumps(data))
+                ew.write_event(event)
+                helper.log_debug(stanza_name + ' | ' +
+                                 "Creating inventory for Moid "+data['Moid'])
+
+    else:
+        helper.log_debug(stanza_name + ' | ' + "Skipping compute HCL status.")
+
+    ###
+    # Contract Status
+    ###
+
+    if 'contract' in opt_inventory and doInventory:
+        helper.log_info(stanza_name + ' | ' +
+                        "Retrieving contract status items...")
+        RESPONSE = requests.request(
+            method='GET',
+            url='https://'+opt_intersight_hostname +
+                '/api/v1/asset/DeviceContractInformations?$count=True',
+            auth=AUTH,
+            verify=opt_validate_ssl,
+            proxies=r_proxy
+        )
+        count = RESPONSE.json()['Count']
+        helper.log_debug(stanza_name + ' | ' + "Found " +
+                         str(count) + " inventory records to retrieve...")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = requests.request(
+                method='GET',
+                url='https://'+opt_intersight_hostname +
+                    '/api/v1/asset/DeviceContractInformations?$top=' +
+                str(results_per_page)+'&$skip='+str(i),
+                auth=AUTH,
+                verify=opt_validate_ssl,
+                proxies=r_proxy
+            )
+
+            for data in RESPONSE.json()['Results']:
+                # remove things that just aren't helpful in splunk
+                for thepop in ['Ancestors', 'Contract', 'EndCustomer', 'EndUserGlobalUltimate', 'Owners', 'PermissionResources', 'Product', 'RegisteredDevice', 'ResellerGlobalUltimate']:
+                    data.pop(thepop)
+                for thepop in ['ClassId', 'link']:
+                    data['Source'].pop(thepop)
+                event = helper.new_event(
+                    source=account_name, index=index, sourcetype='cisco:intersight:assetDeviceContractInformations', data=json.dumps(data))
+                ew.write_event(event)
+                helper.log_debug(stanza_name + ' | ' +
+                                 "Creating inventory for Moid "+data['Moid'])
+
+    else:
+        helper.log_debug(stanza_name + ' | ' +
+                         "Skipping compute contract status.")
+
+    ###
     # Network Inventory
     ###
 
-    if opt_enable_network_inventory and doInventory:
+    if 'network' in opt_inventory and doInventory:
         helper.log_info(stanza_name + ' | ' +
                         "Retrieving network inventory...")
 
@@ -353,7 +454,8 @@ def collect_events(helper, ew):
             url='https://'+opt_intersight_hostname +
                 '/api/v1/network/ElementSummaries?$count=True',
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
         count = RESPONSE.json()['Count']
         helper.log_debug(stanza_name + ' | ' + "Found " +
@@ -366,7 +468,8 @@ def collect_events(helper, ew):
                     '/api/v1/network/ElementSummaries?$top=' +
                 str(results_per_page)+'&$skip='+str(i),
                 auth=AUTH,
-                verify=opt_validate_ssl
+                verify=opt_validate_ssl,
+                proxies=r_proxy
             )
 
             for data in RESPONSE.json()['Results']:
@@ -385,14 +488,15 @@ def collect_events(helper, ew):
     # Target Inventory
     ###
 
-    if opt_enable_target_inventory and doInventory:
+    if 'target' in opt_inventory and doInventory:
         helper.log_info(stanza_name + ' | ' + "Retrieving target inventory...")
 
         RESPONSE = requests.request(
             method='GET',
             url='https://'+opt_intersight_hostname+'/api/v1/asset/Targets?$count=True',
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
         count = RESPONSE.json()['Count']
         helper.log_debug(stanza_name + ' | ' + "Found " +
@@ -404,7 +508,8 @@ def collect_events(helper, ew):
                 url='https://'+opt_intersight_hostname+'/api/v1/asset/Targets?$top=' +
                     str(results_per_page)+'&$skip='+str(i),
                 auth=AUTH,
-                verify=opt_validate_ssl
+                verify=opt_validate_ssl,
+                proxies=r_proxy
             )
 
             for data in RESPONSE.json()['Results']:
@@ -422,7 +527,7 @@ def collect_events(helper, ew):
     # Hyperflex Cluster Inventory
     ###
 
-    if opt_enable_hx_cluster_inventory and doInventory:
+    if 'hyperflex' in opt_inventory and doInventory:
         helper.log_info(stanza_name + ' | ' +
                         "Retrieving Hyperflex cluster inventory...")
 
@@ -430,7 +535,8 @@ def collect_events(helper, ew):
             method='GET',
             url='https://'+opt_intersight_hostname+'/api/v1/hyperflex/Clusters?$count=True',
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
         count = RESPONSE.json()['Count']
         helper.log_debug(stanza_name + ' | ' + "Found " +
@@ -443,7 +549,8 @@ def collect_events(helper, ew):
                     '/api/v1/hyperflex/Clusters?$expand=License&$top=' +
                 str(results_per_page)+'&$skip='+str(i),
                 auth=AUTH,
-                verify=opt_validate_ssl
+                verify=opt_validate_ssl,
+                proxies=r_proxy
             )
 
             for data in RESPONSE.json()['Results']:
@@ -464,7 +571,7 @@ def collect_events(helper, ew):
     # Hyperflex Node Inventory
     ###
 
-    if opt_enable_hx_cluster_inventory and doInventory:
+    if 'hyperflex' in opt_inventory and doInventory:
         helper.log_info(stanza_name + ' | ' +
                         "Retrieving Hyperflex node inventory...")
 
@@ -472,7 +579,8 @@ def collect_events(helper, ew):
             method='GET',
             url='https://'+opt_intersight_hostname+'/api/v1/hyperflex/Nodes?$count=True',
             auth=AUTH,
-            verify=opt_validate_ssl
+            verify=opt_validate_ssl,
+            proxies=r_proxy
         )
         count = RESPONSE.json()['Count']
         helper.log_debug(stanza_name + ' | ' + "Found " +
@@ -485,7 +593,8 @@ def collect_events(helper, ew):
                     '/api/v1/hyperflex/Nodes?$expand=Drives&$top=' +
                 str(results_per_page)+'&$skip='+str(i),
                 auth=AUTH,
-                verify=opt_validate_ssl
+                verify=opt_validate_ssl,
+                proxies=r_proxy
             )
 
             for data in RESPONSE.json()['Results']:
@@ -495,7 +604,7 @@ def collect_events(helper, ew):
                     data['Cluster'].pop(thepop)
                 for thepop in ['ClassId', 'link']:
                     data['PhysicalServer'].pop(thepop)
-                for i in range(0,len(data['Drives'])):
+                for i in range(0, len(data['Drives'])):
                     for thepop in ['Ancestors', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources']:
                         data['Drives'][i].pop(thepop)
                 event = helper.new_event(
@@ -508,110 +617,3 @@ def collect_events(helper, ew):
                          "Skipping Hyperflex node inventory.")
 
     helper.log_info(stanza_name + ' | ' + "FINISHED")
-
-
-
-
-###
-# Intersight Authentication functions
-###
-
-def _get_sha256_digest(data):
-
-    hasher = hashes.Hash(hashes.SHA256(), default_backend())
-
-    if data is not None:
-        hasher.update(data.encode())
-
-    return hasher.finalize()
-
-
-def _prepare_string_to_sign(req_tgt, hdrs):
-    """
-    :param req_tgt : Request Target as stored in http header.
-    :param hdrs: HTTP Headers to be signed.
-    :return: instance of digest object
-    """
-
-    signature_string = '(request-target): ' + req_tgt.lower() + '\n'
-
-    for i, (key, value) in enumerate(hdrs.items()):
-        signature_string += key.lower() + ': ' + value
-        if i < len(list(hdrs.items()))-1:
-            signature_string += '\n'
-
-    return signature_string
-
-
-def _get_rsasig_b64(key, string_to_sign):
-
-    return b64encode(key.sign(
-        string_to_sign,
-        padding.PKCS1v15(),
-        hashes.SHA256()))
-
-
-def _get_auth_header(signing_headers, method, path, api_key_id, secret_key):
-
-    string_to_sign = _prepare_string_to_sign(
-        method + " " + path, signing_headers)
-    b64_signed_auth_digest = _get_rsasig_b64(
-        secret_key, string_to_sign.encode())
-
-    auth_str = (
-        'Signature keyId="' + api_key_id + '",' +
-        'algorithm="rsa-sha256",headers="(request-target)'
-    )
-
-    for key in signing_headers:
-        auth_str += ' ' + key.lower()
-
-    auth_str += (
-        '", signature="' + b64_signed_auth_digest.decode('ascii') + '"'
-    )
-
-    return auth_str
-
-
-class IntersightAuth(AuthBase):
-    """Implements requests custom authentication for Cisco Intersight"""
-
-    def __init__(self, secret_key_filename, api_key_id, secret_key_file_password=None):
-        self.secret_key_filename = secret_key_filename
-        self.api_key_id = api_key_id
-        self.secret_key_file_password = secret_key_file_password
-        self.secret_key = serialization.load_pem_private_key(
-            secret_key_filename.encode('utf-8'),
-            password=secret_key_file_password,
-            backend=default_backend()
-        )
-
-    def __call__(self, r):
-        """Called by requests to modify and return the authenticated request"""
-        date = formatdate(timeval=None, localtime=False, usegmt=True)
-        # date = "Tue, 07 Aug 2018 04:03:47 GMT"
-
-        digest = _get_sha256_digest(r.body)
-
-        url = urlparse(r.url)
-        path = url.path or "/"
-        if url.query:
-            path += "?"+url.query
-
-        signing_headers = {
-            "Date": date,
-            "Host": url.hostname,
-            "Content-Type": r.headers.get('Content-Type') or "application/json",
-            "Digest": "SHA-256=%s" % b64encode(digest).decode('ascii'),
-        }
-
-        auth_header = _get_auth_header(
-            signing_headers, r.method, path, self.api_key_id, self.secret_key)
-
-        r.headers['Digest'] = "SHA-256=%s" % b64encode(digest).decode('ascii')
-        r.headers['Date'] = date
-        r.headers['Authorization'] = "%s" % auth_header
-        r.headers['Host'] = url.hostname
-        r.headers['Content-Type'] = signing_headers['Content-Type']
-
-        return r
