@@ -4,7 +4,7 @@
 
 - Initial public release
 
-## 1.2.4
+## 1.2.5
 
 - Added support for v3 API keys from Intersight.  Either v2 or v3 keys may be used now.
 - Changed Inventory selection in the input from many checkboxes to a single multiple dropdown.
