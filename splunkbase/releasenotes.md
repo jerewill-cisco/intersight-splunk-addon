@@ -18,3 +18,9 @@ Unfortunately, the change from checkboxes to a mutliple dropdown means that the 
 Proxy support was tested, but perhaps not as thoroughly as possible.  Please provide feedback if you have a problem.  Only HTTP proxy (and not SOCKS) is supported at this time.
 
 Proxy support is configured at the Add-on level and not per-Input.  Click the `Configuration` tab at the top of the Add-on for this setting.  This means that on a given Splunk server, all Intersight inputs will share the same proxy configuration.
+
+## 1.2.6
+
+Fixed an issue that could cause the add-on to fail if the Intersight SaaS account did not have any servers licensed at Essentials or higher when either the Compute inventory (because of the HCL feature) or Advisories Inventory items were selected.
+
+Fixed an issue that would cause the add-on to fail if Hyperflex inventory was selected and no Hyperflex clusters were present.
