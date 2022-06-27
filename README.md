@@ -151,6 +151,10 @@ The most useful thing will be the log file from the Add-on. This will be called 
 
 `tail -f /opt/splunk/var/log/splunk/ta_intersight_addon_intersight.log`
 
+It should also be available via the following search...
+
+`index="_internal" sourcetype="taintersightaddon:log"`
+
 Note that if you have multiple inputs (i.e. different Intersight accounts/appliances) configured in the Add-on, the log messages for all of the configured inputs will be interspersed. The Name from the 'Add Input' dialog above is used in the log to differentiate. In these logs, the name EXAMPLE was used.
 
 A normal run without inventory might look like this...
