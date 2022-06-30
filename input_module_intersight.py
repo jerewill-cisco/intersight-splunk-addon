@@ -184,10 +184,15 @@ def collect_events(helper, ew):
             helper.log_debug(stanza_name + ' | ' +
                              "Creating event for Moid "+data['Moid'])
             # Here we check to see if the latest event is newer than our checkpoint, if so we update it.
-            if datetime.datetime.strptime(state, "%Y-%m-%dT%H:%M:%S.%f%z") < datetime.datetime.strptime(data['ModTime'], "%Y-%m-%dT%H:%M:%S.%f%z"):
-                state = data['ModTime']
+            try:
+                if datetime.datetime.strptime(state, "%Y-%m-%dT%H:%M:%S.%f%z") < datetime.datetime.strptime(data['ModTime'], "%Y-%m-%dT%H:%M:%S.%f%z"):
+                    state = data['ModTime']
+                    helper.log_debug(
+                        stanza_name + ' | ' + "Checkpoint key for audit records was updated to " + state)
+            except (ValueError):
                 helper.log_debug(
-                    stanza_name + ' | ' + "Checkpoint key for audit records was updated to " + state)
+                        stanza_name + ' | ' + "Checkpoint key for audit records was unable to be updated")
+                pass
         # Persist our checkpoint at the end of the audit records
         helper.save_check_point(account_name+'_last_audit_record', state)
 
@@ -257,10 +262,15 @@ def collect_events(helper, ew):
             helper.log_debug(stanza_name + ' | ' +
                              "Creating event for Moid "+data['Moid'])
             # Here we check to see if the latest event is newer than our checkpoint, if so we update it.
-            if datetime.datetime.strptime(state, "%Y-%m-%dT%H:%M:%S.%f%z") < datetime.datetime.strptime(data['ModTime'], "%Y-%m-%dT%H:%M:%S.%f%z"):
-                state = data['ModTime']
+            try:
+                if datetime.datetime.strptime(state, "%Y-%m-%dT%H:%M:%S.%f%z") < datetime.datetime.strptime(data['ModTime'], "%Y-%m-%dT%H:%M:%S.%f%z"):
+                    state = data['ModTime']
+                    helper.log_debug(
+                        stanza_name + ' | ' + "Checkpoint key for alarm records was updated to " + state)
+            except:
                 helper.log_debug(
-                    stanza_name + ' | ' + "Checkpoint key for alarm records was updated to " + state)
+                        stanza_name + ' | ' + "Checkpoint key for alarm records was unable to be updated")
+                pass
         # Persist our checkpoint at the end of the audit records
         helper.save_check_point(account_name+'_last_alarm_record', state)
 
@@ -471,7 +481,7 @@ def collect_events(helper, ew):
         count = RESPONSE.json()['Count']
         helper.log_debug(stanza_name + ' | ' + "Found " +
                          str(count) + " inventory records to retrieve...")
-        results_per_page = 10  # adjust the number of results we pull per API call
+        results_per_page = 1  # adjust the number of results we pull per API call
         for i in range(0, count, results_per_page):
             RESPONSE = requests.request(
                 method='GET',
@@ -482,22 +492,23 @@ def collect_events(helper, ew):
                 verify=opt_validate_ssl,
                 proxies=r_proxy
             )
-
-            for data in RESPONSE.json()['Results']:
-                try:
+            try:
+                for data in RESPONSE.json()['Results']:
+                    try:
                     # remove things that just aren't helpful in splunk
-                    for thepop in ['Ancestors', 'Details', 'Owners', 'PermissionResources', 'RegisteredDevice']:
-                        data.pop(thepop)
-                    for thepop in ['ClassId', 'link']:
-                        data['ManagedObject'].pop(thepop)
-                except:
-                    pass
-                event = helper.new_event(
-                    source=account_name, index=index, sourcetype='cisco:intersight:condHclStatuses', data=json.dumps(data))
-                ew.write_event(event)
-                helper.log_debug(stanza_name + ' | ' +
+                        for thepop in ['Ancestors', 'Details', 'Owners', 'PermissionResources', 'RegisteredDevice']:
+                            data.pop(thepop)
+                        for thepop in ['ClassId', 'link']:
+                            data['ManagedObject'].pop(thepop)
+                    except:
+                        pass
+                    event = helper.new_event(
+                        source=account_name, index=index, sourcetype='cisco:intersight:condHclStatuses', data=json.dumps(data))
+                    ew.write_event(event)
+                    helper.log_debug(stanza_name + ' | ' +
                                  "Creating inventory for Moid "+data['Moid'])
-
+            except:
+                helper.log_debug(stanza_name + ' | ' + "HCL failed with code " + RESPONSE.json()['code'])
     else:
         helper.log_debug(stanza_name + ' | ' + "Skipping compute HCL status.")
 

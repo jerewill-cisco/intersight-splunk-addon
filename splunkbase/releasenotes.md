@@ -24,3 +24,9 @@ Proxy support is configured at the Add-on level and not per-Input.  Click the `C
 Fixed an issue that could cause the add-on to fail if the Intersight SaaS account did not have any servers licensed at Essentials or higher when either the Compute inventory (because of the HCL feature) or Advisories Inventory items were selected.
 
 Fixed an issue that would cause the add-on to fail if Hyperflex inventory was selected and no Hyperflex clusters were present.
+
+## 1.2.7
+
+Worked around an issue that could cause the addon to fail if an Alarm or Audit Log event happen exactly at the second boundary and didn't leave any fraction of a second.  A more mathematically correct fix will have to wait for a future update.
+
+Worked around an issue that could cause the add-on to fail if the compute HCL query encountered a record that was associated with a server that's no longer licensed for the HCL feature.  This, too, will get a more thorough fix at some point in the future.
