@@ -461,7 +461,7 @@ def collect_events(helper, ew):
         RESPONSE = r_intersight(f"{endpoint}?$count=True")
         count = RESPONSE.json()['Count']
         helper.log_info(
-            f"{s} | Found {str(count)} Hyperflex records to retrieve")
+            f"{s} | Found {str(count)} Hyperflex cluster records to retrieve")
         results_per_page = 10  # adjust the number of results we pull per API call
         for i in range(0, count, results_per_page):
             RESPONSE = r_intersight(
@@ -484,7 +484,7 @@ def collect_events(helper, ew):
         RESPONSE = r_intersight(f"{endpoint}?$count=True")
         count = RESPONSE.json()['Count']
         helper.log_info(
-            f"{s} | Found {str(count)} Hyperflex records to retrieve")
+            f"{s} | Found {str(count)} Hyperflex node records to retrieve")
         results_per_page = 10  # adjust the number of results we pull per API call
         for i in range(0, count, results_per_page):
             RESPONSE = r_intersight(
