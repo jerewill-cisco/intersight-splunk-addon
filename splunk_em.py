@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 import input_module_intersight
 
-load_dotenv('_brattice.env')
+load_dotenv('example.env')
 
 # This code allows us to execute the input for testing without needing additional code from splunk
 # by providing a minimal sub-out of the two classes that splunk passes to the input

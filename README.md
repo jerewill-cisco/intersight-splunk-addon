@@ -14,6 +14,8 @@ Intersight uses API keys to cryptographically sign API requests. To sign request
 
 From here, the bulk of the work is contained in [input_module_intersight.py](input_module_intersight.py) and the connectivity is done with relatively straightforward usage of the Python Requests library.
 
+To execute the Intersight-facing input code without Splunk, see [splunk_em.py](splunk_em.py).  It provides a really minimal set of code that will allow it to call [input_module_intersight.py](input_module_intersight.py) and output some logging without an actual Splunk server.  It does not persist any of the checkpoints so functionally it's like a first-run every time.  This is really helpful for debugging and testing.  It picks up the Intersight api key and secret key from a .env file.
+
 ## Distribution
 
 This Add-on is available [from Splunkbase](https://splunkbase.splunk.com/app/6482/).
