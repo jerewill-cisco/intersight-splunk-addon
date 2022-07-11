@@ -30,3 +30,16 @@ Fixed an issue that would cause the add-on to fail if Hyperflex inventory was se
 Worked around an issue that could cause the addon to fail if an Alarm or Audit Log event happen exactly at the second boundary and didn't leave any fraction of a second.  A more mathematically correct fix will have to wait for a future update.
 
 Worked around an issue that could cause the add-on to fail if the compute HCL query encountered a record that was associated with a server that's no longer licensed for the HCL feature.  This, too, will get a more thorough fix at some point in the future.
+
+## 1.2.8
+
+- Added splunk_em.py to facilitate local testing without a Splunk server
+- General code cleanup and refactoring
+- Better fixes for the issues that were worked around in 1.2.7
+
+If you're wondering what general code cleanup means...
+
+- converted all the messy strings into much nicer f-strings
+- added a bunch of functions for code that was duplicated all over the place
+- moved HCL queries inside of the compute inventory
+- improved logging

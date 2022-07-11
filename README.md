@@ -14,6 +14,8 @@ Intersight uses API keys to cryptographically sign API requests. To sign request
 
 From here, the bulk of the work is contained in [input_module_intersight.py](input_module_intersight.py) and the connectivity is done with relatively straightforward usage of the Python Requests library.
 
+To execute the Intersight-facing input code without Splunk, see [splunk_em.py](splunk_em.py).  It provides a really minimal set of code that will allow it to call [input_module_intersight.py](input_module_intersight.py) and output some logging without an actual Splunk server.  It does not persist any of the checkpoints so functionally it's like a first-run every time.  This is really helpful for debugging and testing.  It picks up the Intersight api key and secret key from a .env file.
+
 ## Distribution
 
 This Add-on is available [from Splunkbase](https://splunkbase.splunk.com/app/6482/).
@@ -160,27 +162,32 @@ Note that if you have multiple inputs (i.e. different Intersight accounts/applia
 A normal run without inventory might look like this...
 
 ``` LOG
-2022-06-17 13:18:56,630 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Starting input named EXAMPLE
-2022-06-17 13:18:56,860 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Connected to Intersight SaaS account named jerewill-dev
-2022-06-17 13:18:56,860 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Alarms...
-2022-06-17 13:18:56,860 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Audit Records...
-2022-06-17 13:18:57,012 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Skipping Advisories and Inventories this inverval.
-2022-06-17 13:18:57,038 INFO pid=6710 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | FINISHED
+2022-07-10 17:55:20,256 INFO pid=16028 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Connected to Intersight SaaS account named EXAMPLE-LAB
+2022-07-10 17:55:20,256 INFO pid=16028 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Audit Records
+2022-07-10 17:55:20,345 INFO pid=16028 tid=MainThread file=splunk_rest_client.py:_request_handler:99 | Use HTTP connection pooling
+2022-07-10 17:55:20,521 INFO pid=16028 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Alarm Records
+2022-07-10 17:55:20,706 INFO pid=16028 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Skipping Inventory records this inverval, checkpoint is now 4 of 10
+2022-07-10 17:55:20,726 INFO pid=16028 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | FINISHED -- runtime was 0:00:00.593535
 ```
 
 A normal run with inventory might look like this...
 
 ``` LOG
-2022-06-16 16:21:04,848 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Starting input named EXAMPLE
-2022-06-16 16:21:05,151 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Connected to Intersight SaaS account named EXAMPLE
-2022-06-16 16:21:05,151 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Audit Records...
-2022-06-16 16:21:05,445 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Alarms...
-2022-06-16 16:21:05,624 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Advisories...
-2022-06-16 16:21:05,843 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving compute inventory...
-2022-06-16 16:21:06,506 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving network inventory...
-2022-06-16 16:21:06,979 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving target inventory...
-2022-06-16 16:21:07,536 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Hyperflex cluster inventory...
-2022-06-16 16:21:07,793 INFO pid=22625 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | FINISHED
+2022-07-10 17:54:20,479 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Starting input named EXAMPLE
+2022-07-10 17:54:20,479 INFO pid=15980 tid=MainThread file=setup_util.py:log_info:117 | Proxy is not enabled!
+2022-07-10 17:54:20,636 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Connected to Intersight SaaS account named EXAMPLE-LAB
+2022-07-10 17:54:20,636 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Audit Records
+2022-07-10 17:54:20,708 INFO pid=15980 tid=MainThread file=splunk_rest_client.py:_request_handler:99 | Use HTTP connection pooling
+2022-07-10 17:54:20,860 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Retrieving Alarm Records
+2022-07-10 17:54:21,034 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Inventory is running this interval, checkpoint is now 0 of 10
+2022-07-10 17:54:21,333 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Found 1 advisory records to retrieve
+2022-07-10 17:54:21,484 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Found 1 compute inventory records to retrieve
+2022-07-10 17:54:22,066 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Found 1 contract inventory records to retrieve
+2022-07-10 17:54:22,288 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Found 0 network inventory records to retrieve
+2022-07-10 17:54:22,404 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Found 2 target inventory records to retrieve
+2022-07-10 17:54:22,623 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Found 1 Hyperflex cluster records to retrieve
+2022-07-10 17:54:22,843 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | Found 2 Hyperflex node records to retrieve
+2022-07-10 17:54:22,923 INFO pid=15980 tid=MainThread file=base_modinput.py:log_info:295 | EXAMPLE | FINISHED -- runtime was 0:00:02.443714
 ```
 
 A log message like this would indicate that Splunk can't connect to an Intersight on-premise appliance. Verify connectivity, DNS resolution, and if all else fails try un-checking the 'Validate SSL Certificate' checkbox on the Input.
