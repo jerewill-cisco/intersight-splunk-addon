@@ -495,9 +495,12 @@ def collect_events(helper, ew):
                 data['Cluster'] = pop(['ClassId', 'link'], data['Cluster'])
                 data['PhysicalServer'] = pop(
                     ['ClassId', 'link'], data['PhysicalServer'])
-                for i in range(0, len(data['Drives'])):
-                    data['Drives'][i] = pop(
-                        ['Ancestors', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources'], data['Drives'][i])
+                if data['Drives'] == None:
+                    helper.log_warning(f"{s} | Hyperflex host {data['Moid']} has no list of drives")
+                else:
+                    for i in range(0, len(data['Drives'])):
+                        data['Drives'][i] = pop(
+                            ['Ancestors', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources'], data['Drives'][i])
                 write_splunk(index, account_name,
                              'cisco:intersight:hyperflexNodes', data)
 
