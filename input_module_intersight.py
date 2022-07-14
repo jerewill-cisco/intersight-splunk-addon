@@ -338,8 +338,10 @@ def collect_events(helper, ew):
             RESPONSE = r_intersight(
                 f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
-                data = pop(['Ancestors', 'PermissionResources','Owners'], data)
-                data['RegisteredDevice'] = pop(['ClassId', 'ObjectType'], data['RegisteredDevice'])
+                data = pop(
+                    ['Ancestors', 'PermissionResources', 'Owners'], data)
+                data['RegisteredDevice'] = pop(
+                    ['ClassId', 'ObjectType'], data['RegisteredDevice'])
                 write_splunk(index, account_name,
                              'cisco:intersight:computePhysicalSummaries', data)
                 # try to get HCL data also
@@ -413,7 +415,8 @@ def collect_events(helper, ew):
             for data in RESPONSE.json()['Results']:
                 data = pop(['Ancestors', 'PermissionResources',
                            'Owners'], data)
-                data['RegisteredDevice'] = pop(['ClassId', 'ObjectType'], data['RegisteredDevice'])
+                data['RegisteredDevice'] = pop(
+                    ['ClassId', 'ObjectType'], data['RegisteredDevice'])
                 write_splunk(
                     index, account_name, 'cisco:intersight:networkElementSummaries', data=data)
 
@@ -466,13 +469,16 @@ def collect_events(helper, ew):
         results_per_page = 10  # adjust the number of results we pull per API call
         for i in range(0, count, results_per_page):
             RESPONSE = r_intersight(
-                f"{endpoint}?$expand=License,RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
+                f"{endpoint}?$expand=Encryption($select=State),License,RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(['Alarm', 'Ancestors', 'ChildClusters', 'Owners', 'PermissionResources',
                            'StorageContainers', 'Nodes', 'Health', 'ParentCluster'], data)
                 data['License'] = pop(
                     ['Ancestors', 'Cluster', 'Owners', 'PermissionResources', 'RegisteredDevice'], data['License'])
-                data['RegisteredDevice'] = pop(['ClassId', 'ObjectType'], data['RegisteredDevice'])
+                data['RegisteredDevice'] = pop(
+                    ['ClassId', 'ObjectType'], data['RegisteredDevice'])
+                data['Encryption'] = pop(
+                    ['ClassId', 'ObjectType', 'Moid'], data['Encryption'])
                 write_splunk(index, account_name,
                              'cisco:intersight:hyperflexClusters', data)
 
