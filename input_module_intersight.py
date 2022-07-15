@@ -108,6 +108,10 @@ def collect_events(helper, ew):
             return data
 
     def write_splunk(index, source, sourcetype, data):
+        length = len(json.dumps(data))
+        if length > 9999:
+            helper.log_warning(
+                f"{s} | Record for {sourcetype} exceeds 10k limit! Length={length}  Moid={data['Moid']}")
         event = helper.new_event(
             source=source, index=index, sourcetype=sourcetype, data=json.dumps(data))
         ew.write_event(event)
@@ -472,7 +476,7 @@ def collect_events(helper, ew):
                 f"{endpoint}?$expand=Encryption($select=State),License,RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(['Alarm', 'Ancestors', 'ChildClusters', 'Owners', 'PermissionResources',
-                           'StorageContainers', 'Nodes', 'Health', 'ParentCluster'], data)
+                           'StorageContainers', 'Nodes', 'Health', 'ParentCluster', 'Volumes'], data)
                 data['License'] = pop(
                     ['Ancestors', 'Cluster', 'Owners', 'PermissionResources', 'RegisteredDevice'], data['License'])
                 data['RegisteredDevice'] = pop(
@@ -509,7 +513,7 @@ def collect_events(helper, ew):
                 else:
                     for i in range(0, len(data['Drives'])):
                         data['Drives'][i] = pop(
-                            ['Ancestors', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources'], data['Drives'][i])
+                            ['AccountMoid', 'Ancestors', 'ClassId', 'NodeUuid', 'Uuid', 'SharedScope', 'ObjectType', 'Moid', 'HostName', 'Tags', 'DomainGroupMoid', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources'], data['Drives'][i])
                 write_splunk(index, account_name,
                              'cisco:intersight:hyperflexNodes', data)
 
