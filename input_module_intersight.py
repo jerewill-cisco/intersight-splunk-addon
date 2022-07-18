@@ -102,7 +102,11 @@ def collect_events(helper, ew):
     def pop(pop, data):
         try:
             for thepop in pop:
-                data.pop(thepop)
+                try:
+                    data.pop(thepop)
+                except:
+                    helper.log_debug(
+                        f"{s} | Failed to pop {thepop}")
             return data
         except:
             return data
@@ -216,7 +220,7 @@ def collect_events(helper, ew):
         for data in RESPONSE.json()['Results']:
             # pop things we don't need
             data = pop(['Account', 'Ancestors',
-                       'PermissionResources', 'Owners', 'User'], data)
+                       'PermissionResources', 'Owners', 'User', 'ClassId', 'DomainGroupMoid', 'ObjectType', 'Sessions', 'SharedScope'], data)
             # Splunk default doesn't allow events over 10k characters by default
             if len(json.dumps(data)) > 9999:
                 # we're truncating the Request value if it's larger than that
@@ -252,8 +256,8 @@ def collect_events(helper, ew):
 
         # Process the alarm records
         for data in RESPONSE.json()['Results']:
-            data = pop(['AffectedMo', 'Ancestors', 'Owners',
-                       'PermissionResources', 'RegisteredDevice'], data)
+            data = pop(['AffectedMo', 'Ancestors', 'Owners', 'PermissionResources',
+                       'RegisteredDevice', 'ClassId', 'DomainGroupMoid', 'ObjectType', 'SharedScope'], data)
             write_splunk(index, account_name,
                          'cisco:intersight:condAlarms', data)
             state = larger_datetime(data['ModTime'], state)
@@ -314,9 +318,9 @@ def collect_events(helper, ew):
                 f"{endpoint}?$expand=Advisory&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(['Ancestors', 'AffectedObject',
-                            'PermissionResources', 'Owners', 'DeviceRegistration'], data)
-                data['Advisory'] = pop(['Ancestors', 'Actions', 'ApiDataSources', 'Organization',
-                                        'Owners', 'PermissionResources', 'Recommendation'], data['Advisory'])
+                            'PermissionResources', 'Owners', 'DeviceRegistration', 'ClassId', 'DomainGroupMoid', 'ObjectType', 'SharedScope'], data)
+                data['Advisory'] = pop(['AccountMoid', 'Ancestors', 'Actions', 'ApiDataSources', 'Organization',
+                                        'Owners', 'PermissionResources', 'Recommendation', 'DomainGroupMoid', 'ObjectType', 'SharedScope'], data['Advisory'])
                 write_splunk(index, account_name,
                              'cisco:intersight:tamAdvisoryInstances', data)
 
@@ -343,9 +347,11 @@ def collect_events(helper, ew):
                 f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(
-                    ['Ancestors', 'PermissionResources', 'Owners'], data)
+                    ['Ancestors', 'PermissionResources', 'Owners', 'DomainGroupMoid', 'ClassId', 'FaultSummary', 'EquipmentChassis', 'InventoryDeviceInfo', 'KvmVendor', 'ObjectType', 'ScaledMode', 'Rn', 'SharedScope'], data)
                 data['RegisteredDevice'] = pop(
                     ['ClassId', 'ObjectType'], data['RegisteredDevice'])
+                data['AlarmSummary'] = pop(
+                    ['ClassId', 'ObjectType'], data['AlarmSummary'])
                 write_splunk(index, account_name,
                              'cisco:intersight:computePhysicalSummaries', data)
                 # try to get HCL data also
@@ -390,7 +396,7 @@ def collect_events(helper, ew):
                 f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(['Ancestors', 'Contract', 'EndCustomer', 'EndUserGlobalUltimate', 'Owners',
-                           'PermissionResources', 'Product', 'RegisteredDevice', 'ResellerGlobalUltimate'], data)
+                           'PermissionResources', 'Product', 'RegisteredDevice', 'ResellerGlobalUltimate', 'ClassId', 'ObjectType', 'SharedScope'], data)
                 data['Source'] = pop(['ClassId', 'link'], data['Source'])
                 write_splunk(
                     index, account_name, 'cisco:intersight:assetDeviceContractInformations', data)
@@ -418,9 +424,11 @@ def collect_events(helper, ew):
                 f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(['Ancestors', 'PermissionResources',
-                           'Owners'], data)
+                           'Owners', 'FaultSummary', 'ClassId', 'ObjectType', 'SharedScope'], data)
                 data['RegisteredDevice'] = pop(
                     ['ClassId', 'ObjectType'], data['RegisteredDevice'])
+                data['AlarmSummary'] = pop(
+                    ['ClassId', 'ObjectType'], data['AlarmSummary'])
                 write_splunk(
                     index, account_name, 'cisco:intersight:networkElementSummaries', data=data)
 
@@ -446,8 +454,8 @@ def collect_events(helper, ew):
             RESPONSE = r_intersight(
                 f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
-                data = pop(['Account', 'Ancestors', 'Connections',
-                           'PermissionResources', 'Owners', 'RegisteredDevice'], data)
+                data = pop(['Account', 'Ancestors', 'Connections', 'Parent', 'DomainGroupMoid',
+                           'PermissionResources', 'Owners', 'RegisteredDevice', 'SharedScope', 'ClassId', 'ObjectType'], data)
                 write_splunk(
                     index, account_name, 'cisco:intersight:assetTargets', data=data)
 
@@ -475,14 +483,16 @@ def collect_events(helper, ew):
             RESPONSE = r_intersight(
                 f"{endpoint}?$expand=Encryption($select=State),License,RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
-                data = pop(['Alarm', 'Ancestors', 'ChildClusters', 'Owners', 'PermissionResources',
-                           'StorageContainers', 'Nodes', 'Health', 'ParentCluster', 'Volumes'], data)
+                data = pop(['Alarm', 'Ancestors', 'ChildClusters', 'DomainGroupMoid', 'ClassId', 'Owners', 'ObjectType', 'PermissionResources',
+                           'StorageContainers', 'SharedScope', 'Nodes', 'Health', 'ParentCluster', 'Volumes'], data)
                 data['License'] = pop(
-                    ['Ancestors', 'Cluster', 'Owners', 'PermissionResources', 'RegisteredDevice'], data['License'])
+                    ['Ancestors', 'Cluster', 'Owners', 'DomainGroupMoid', 'PermissionResources', 'RegisteredDevice'], data['License'])
                 data['RegisteredDevice'] = pop(
                     ['ClassId', 'ObjectType'], data['RegisteredDevice'])
                 data['Encryption'] = pop(
                     ['ClassId', 'ObjectType', 'Moid'], data['Encryption'])
+                data['AlarmSummary'] = pop(
+                    ['ClassId', 'ObjectType'], data['AlarmSummary'])
                 write_splunk(index, account_name,
                              'cisco:intersight:hyperflexClusters', data)
 
@@ -502,8 +512,8 @@ def collect_events(helper, ew):
             RESPONSE = r_intersight(
                 f"{endpoint}?$expand=Drives&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
-                data = pop(['Ancestors', 'ClusterMember', 'Identity',
-                           'Owners', 'Parent', 'PermissionResources'], data)
+                data = pop(['Ancestors', 'ClusterMember', 'Identity', 'Owners',
+                           'Parent', 'PermissionResources', 'SharedScope', 'DomainGroupMoid', 'ClassId', 'ObjectType', 'NodeUuid'], data)
                 data['Cluster'] = pop(['ClassId', 'link'], data['Cluster'])
                 data['PhysicalServer'] = pop(
                     ['ClassId', 'link'], data['PhysicalServer'])
@@ -513,7 +523,7 @@ def collect_events(helper, ew):
                 else:
                     for i in range(0, len(data['Drives'])):
                         data['Drives'][i] = pop(
-                            ['AccountMoid', 'Ancestors', 'ClassId', 'NodeUuid', 'Uuid', 'SharedScope', 'ObjectType', 'Moid', 'HostName', 'Tags', 'DomainGroupMoid', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources'], data['Drives'][i])
+                            ['AccountMoid', 'Ancestors', 'ClassId', 'NodeUuid', 'Uuid', 'SharedScope', 'ObjectType', 'Moid', 'HostName', 'Tags', 'DomainGroupMoid', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources', 'HostUuid'], data['Drives'][i])
                 write_splunk(index, account_name,
                              'cisco:intersight:hyperflexNodes', data)
 
