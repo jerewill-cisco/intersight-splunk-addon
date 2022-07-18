@@ -489,8 +489,9 @@ def collect_events(helper, ew):
                     ['Ancestors', 'Cluster', 'Owners', 'DomainGroupMoid', 'PermissionResources', 'RegisteredDevice'], data['License'])
                 data['RegisteredDevice'] = pop(
                     ['ClassId', 'ObjectType'], data['RegisteredDevice'])
-                data['Encryption'] = pop(
-                    ['ClassId', 'ObjectType', 'Moid'], data['Encryption'])
+                if data['Encryption'] != None:
+                    data['Encryption'] = pop(
+                        ['ClassId', 'ObjectType', 'Moid'], data['Encryption'])
                 data['AlarmSummary'] = pop(
                     ['ClassId', 'ObjectType'], data['AlarmSummary'])
                 write_splunk(index, account_name,
