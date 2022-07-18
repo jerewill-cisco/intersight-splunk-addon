@@ -6,7 +6,7 @@ This Splunk [Add-On](https://docs.splunk.com/Splexicon:Addon) begins to solve th
 
 This Add-on is not supported by Cisco Systems or the Cisco Technical Assistance Center (TAC). It was developed by me, as a member of the community.
 
-## Development Overview
+## Development
 
 I used the [Splunk Add-on Builder](https://splunkbase.splunk.com/app/2962/) to create this Add-on. This approach provides a solid framework to build a python-based [scripted input](https://docs.splunk.com/Splexicon:Scriptedinput).
 
@@ -38,7 +38,7 @@ Simply install the app and click on the Inputs tab. Click the 'Create New Input'
 
 ![Add Intersight Input](images/add_intersight.png)
 
-## Fields on the Add Intersight dialog
+## Configuration
 
 - Name : This name is the name of the input. It isn't used anywhere except the Add-on logs (see [Troubleshooting](#troubleshooting)) and can be a friendly name for the Intersight account.
 - Interval : This interval (in seconds) controls how often the input will retrieve data from Intersight. I think `60` seconds is probably ideal, but anything between `30` seconds and `300` seconds is probably reasonable.
@@ -52,7 +52,7 @@ Simply install the app and click on the Inputs tab. Click the 'Create New Input'
 - Enable Inventory : This multi-select enables the various inventory import options. All, some, or none of these items may be selected. [See below for more details](#the-data-from-intersight-in-splunk) on what is included in the various options.
 - Inventory Interval : Inventory records don't need to be imported from Intersight at every interval in a typical environment. This value selects how many intervals should occur between imports of these items. A selection of `1` here will import them on every interval. Perhaps if the Interval above is `60` seconds, then an Inventory Interval here of `300` will cause inventory and advisories to be imported a few times a day on every 300th run of this input. This is a sensible way to reduce the repetitive input of data that doesn't change that often. I would suggest a configuration that imports inventory at least once every 24 hours.
 
-## Proxy Configuration
+## Proxy
 
 An HTTP proxy server may be configured for the Add-on by clicking on Configuration at the top of the page. Basic authentication should work, but hasn't been tested. Username and Password must BOTH be populated to send Basic Authentication to the proxy server. If either field is empty, the Add-on will attempt to use the proxy server without authentication.
 
@@ -68,7 +68,7 @@ An HTTP proxy server may be configured for the Add-on by clicking on Configurati
 
 These fields are assembled into a proxy URL such as `http://username:password@hostname.domain.com:3128`.
 
-## The data from Intersight in Splunk
+## Data
 
 Each API endpoint in Intersight becomes a different sourcetype in Splunk as shown below. Some of the Inventory types pull data from multiple API endpoints in Intersight to get a complete data set.
 
@@ -102,7 +102,7 @@ The technique of using `| dedup Moid` is applicable to all sourcetypes except ci
 
 You may also notice, if you are very familiar with the Intersight API, that there are a few nodes of JSON that are missing in Splunk that are present elsewhere. This is due to some editorial pruning that is occurring in the Add-on. There are some object references in the API results that simply don't serve any purpose in Splunk. The Add-on is pruning these to improve the overall experience and optimize the amount of data that gets pushed to Splunk.
 
-## More examples
+## Examples
 
 One for each sourcetype...
 
@@ -141,7 +141,7 @@ Here's an example where we join the computePhysicalSummaries with the condHclSta
 
 `index=* sourcetype=cisco:intersight:computePhysicalSummaries | dedup Moid | rename OperPowerState as Power | join type=outer Moid [search index=* sourcetype=cisco:intersight:condHclStatuses | dedup Moid | Table ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus | rename ManagedObject.Moid as Moid] | Table source, Power, Name, Model, Serial, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus`
 
-## A note about aaaAuditRecords
+## aaaAuditRecords
 
 The default maximum size for an event in splunk is 10KB. It is possible (even likely) that you will have aaaAuditRecords that exceed this size. While it is possible to increase this value so that Splunk can ingest these very large events, a look at the data indicates that the contents of the Results field was always the culprit and often not particularly useful in these large records. If the event is less than 10KB in size, it passes through to Splunk with the Results JSON structure intact. If the event would have exceeded 10k, the Results field is replaced with the value `TRUNCATED` so that the base audit log data is still available in Splunk and able to be extracted properly. Such truncated records can be found using the following search.
 
@@ -151,6 +151,10 @@ A further look at the data will indicate that most of these are actually related
 
 `index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name`
 
+Everything else has been pruned of unhelpful data to the point that it shouldn't exceed the 10KB limit.  If anything does exceeed that 10KB, it will be logged...
+
+`2022-07-15 12:45:20,726 INFO pid=12445 tid=MainThread file=base_modinput.py:log_warning:302 | EXAMPLE | Record exceeds 10k limit!  Moid=62b22eeb656c6c2d32394990 Type=hyperflex.Node`
+
 ## Troubleshooting
 
 The most useful thing will be the log file from the Add-on. This will be called `ta_intersight_addon_intersight.log`. I suggest tailing this log if you're trying to figure out what is happening. Adjust the path to get to your Splunk directory as necessary...
@@ -159,7 +163,7 @@ The most useful thing will be the log file from the Add-on. This will be called 
 
 It should also be available via the following search...
 
-`index="_internal" sourcetype="taintersightaddon:log"`
+`index=_* sourcetype=taintersightaddon:log | rex field=_raw "\d+ (?<loglevel>\w+) pid.* \| (?<intersightinput>\w+) \| (?<logmessage>.*)" | search intersightinput=* | table _time, intersightinput, loglevel, logmessage`
 
 Note that if you have multiple inputs (i.e. different Intersight accounts/appliances) configured in the Add-on, the log messages for all of the configured inputs will be interspersed. The Name from the 'Add Input' dialog above is used in the log to differentiate. In these logs, the name EXAMPLE was used.
 
