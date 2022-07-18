@@ -43,3 +43,14 @@ If you're wondering what general code cleanup means...
 - added a bunch of functions for code that was duplicated all over the place
 - moved HCL queries inside of the compute inventory
 - improved logging
+
+## 1.2.9
+
+- Fixed an issue that could cause the add-on to fail wihle processing an HX cluster that has very stale data
+- Added RegisteredDevice to computePhysicalSummaries, networkElementSummaries, and hyperflexClusters
+- Added Encryption to hyperflexClusters
+- Pruned additional items from the Drives elements of the hyperflexNodes sourcetype to prevent records from exceeding 10k bytes
+- Pruned additional items from the hyperflexClusters sourcetype to prevent records from exceeding 10k bytes
+- Pruned a few items from all of the inventory types to improve consistency and relevance
+- Updated example searches on Github to include RegisteredDevice.ConnectionStatus
+- Added an additional log message to warn when records exceed the 10k size limit
