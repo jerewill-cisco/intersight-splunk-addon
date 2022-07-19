@@ -141,6 +141,32 @@ Here's an example where we join the computePhysicalSummaries with the condHclSta
 
 `index=* sourcetype=cisco:intersight:computePhysicalSummaries | dedup Moid | rename OperPowerState as Power | join type=outer Moid [search index=* sourcetype=cisco:intersight:condHclStatuses | dedup Moid | Table ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus | rename ManagedObject.Moid as Moid] | Table source, Power, Name, Model, Serial, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus`
 
+## Tags
+
+Tags from Intersight are actually quite challenging in Splunk.  The default Splunk [spath](https://docs.splunk.com/Documentation/Splunk/latest/SearchReference/Spath) decode of the JSON from Intersight will naturally create two multivalue fields... a `Tags{}.Key` field will have all of the keys and a `Tags{}.Value` field will have all of the values.  For example...
+
+``` JSON
+"Tags": [{"Key": "Intersight.LicenseTier", "Value": "Premier"}]
+```
+
+Becomes...
+
+![Default Tag Decoding Example](images/default_spath.png)
+
+So it seems very easy to search for Tags{}.Value=Premier if you wanted to find all of the things with a Premier Intersight.LicenseTier tag, but this is not safe.  The problem is that if there is also a tag named, for example, SLA that also has a value of Premier you'd match it.  In this default model, the Key and the Value have no relationship so using these fields is desceptively dangerous from a data integrity standpoint.
+
+The solution that I've come up with so far is pretty complex but appears to be safe to use.  Here is an example...
+
+`index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"tag./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | search tag.Intersight.LicenseTier=Premier`
+
+This approach returns all of the available tags as separate fields named `tag.<Key>`.  This certainly seems much more convenient to use as we can now search the value of specific tags.
+
+![Improved Tag Decoding Example](images/improved_spath.png)
+
+You could also use this approach to create a report of the tags in use.
+
+`index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | search Key=* | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"tag./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | table sourcetype, Moid, tag.*`
+
 ## aaaAuditRecords
 
 The default maximum size for an event in splunk is 10KB. It is possible (even likely) that you will have aaaAuditRecords that exceed this size. While it is possible to increase this value so that Splunk can ingest these very large events, a look at the data indicates that the contents of the Results field was always the culprit and often not particularly useful in these large records. If the event is less than 10KB in size, it passes through to Splunk with the Results JSON structure intact. If the event would have exceeded 10k, the Results field is replaced with the value `TRUNCATED` so that the base audit log data is still available in Splunk and able to be extracted properly. Such truncated records can be found using the following search.
