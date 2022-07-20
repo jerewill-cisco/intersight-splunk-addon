@@ -155,17 +155,21 @@ Becomes...
 
 So it seems very easy to search for Tags{}.Value=Premier if you wanted to find all of the things with a Premier Intersight.LicenseTier tag, but this is not safe.  The problem is that if there is also a tag named, for example, SLA that also has a value of Premier you'd match it.  In this default model, the Key and the Value have no relationship so using these fields is desceptively dangerous from a data integrity standpoint.
 
-The solution that I've come up with so far is pretty complex but appears to be safe to use.  Here is an example...
+The solution that I've come up with using only native Splunk SPL is pretty complex but appears to be safe to use.  Here is an example...
 
-`index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"tag./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | search tag.Intersight.LicenseTier=Premier`
+`index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"Tags./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | search Tags.Intersight.LicenseTier=Premier`
 
-This approach returns all of the available tags as separate fields named `tag.<Key>`.  This certainly seems much more convenient to use as we can now search the value of specific tags.
+This approach returns all of the available tags as separate fields named `Tags.<Key>`.  This certainly seems much more convenient to use as we can now search the value of specific tags.
 
-![Improved Tag Decoding Example](images/improved_spath.png)
+![Improved Tag Decoding Example](images/improved_tag.png)
 
-You could also use this approach to create a report of the tags in use.
+An alternate (and perhaps better) approach is using the [array2object](https://splunkbase.splunk.com/app/6161/) application that is available from Splunkbase.
 
-`index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | search Key=* | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"tag./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | table sourcetype, Moid, tag.*`
+`index=* sourcetype="cisco:intersight:*" | dedup Moid | array2object path="Tags" key=Key value=Value | search Tags.Intersight.LicenseTier=Premier`
+
+This approach provides the same end result to the search above with a much cleaner query syntax.
+
+Read more about [array2object at SplunkBase](https://splunkbase.splunk.com/app/6161/).
 
 ## aaaAuditRecords
 
