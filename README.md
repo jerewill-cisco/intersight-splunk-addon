@@ -84,21 +84,58 @@ These inventory options are enabled via the multi-select in the input configurat
 | Advisories | [tam/AdvisoryInstances][3] | cisco:intersight:tamAdvisoryInstances |
 | Compute | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
 | Compute | [cond/HclStatuses][9] | cisco:intersight:condHclStatuses |
-| Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
-| Hyperflex | [hyperflex/Nodes][8] |cisco:intersight:hyperflexNodes |
-| Network | [network/ElementSummaries][6] | cisco:intersight:networkElementSummaries |
-| Target | [asset/Targets][7] | cisco:intersight:assetTargets |
 | Contract | [asset/DeviceContractStatusInformations][10] | cisco:intersight:assetDeviceContractInformations |
+| Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
+| Hyperflex | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
+| Hyperflex | [hyperflex/StorageContainers][16] | cisco:intersight:hyperflexStorageContainers |
+| NetApp | [storage/NetAppClusters][11] | cisco:intersight:storageNetAppClusters |
+| NetApp | [storage/NetAppNodes][12] | cisco:intersight:storageNetAppNodes |
+| NetApp | [storage/NetAppVolumes][17] | cisco:intersight:storageNetAppVolumes |
+| NetApp | [convergedinfra/Pods][13] | cisco:intersight:convergedinfraPods |
+| Network | [network/ElementSummaries][6] | cisco:intersight:networkElementSummaries |
+| Pure | [storage/PureArrays][14] | cisco:intersight:storagePureArrays |
+| Pure | [storage/PureControllers][15] | cisco:intersight:storagePureControllers |
+| Pure | [storage/PureVolumes][18] | cisco:intersight:storagePureVolumes |
+| Target | [asset/Targets][7] | cisco:intersight:assetTargets |
+
+[1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/model/
+[2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/model/
+[3]: https://intersight.com/apidocs/apirefs/api/v1/tam/AdvisoryInstances/model/
+[4]: https://intersight.com/apidocs/apirefs/api/v1/compute/PhysicalSummaries/model/
+[5]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Clusters/model/
+[6]: https://intersight.com/apidocs/apirefs/api/v1/network/ElementSummaries/model/
+[7]: https://intersight.com/apidocs/apirefs/api/v1/asset/Targets/model/
+[8]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Nodes/model/
+[9]: https://intersight.com/apidocs/apirefs/api/v1/cond/HclStatuses/model/
+[10]: https://intersight.com/apidocs/apirefs/api/v1/asset/DeviceContractInformations/model/
+[11]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppClusters/model
+[12]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppNodes/model
+[13]: https://intersight.com/apidocs/apirefs/api/v1/convergedinfra/Pods/model
+[14]: https://intersight.com/apidocs/apirefs/api/v1/storage/PureArrays/model/
+[15]: https://intersight.com/apidocs/apirefs/api/v1/storage/PureControllers/model/
+[16]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/StorageContainers/model/
+[17]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppVolumes/model/
+[18]: https://intersight.com/apidocs/apirefs/api/v1/storage/PureVolumes/model/
 
 All of the data from this Add-on can be queried in Splunk using the following [SPL](https://docs.splunk.com/Splexicon:SPL):
 
-`index=* sourcetype=cisco:intersight:*`
+```SPL
+index=* sourcetype=cisco:intersight:*
+```
 
 In many cases, this will retrieve duplicate records as alarms are updated or inventory is regularly re-imported. The [dedup command](https://docs.splunk.com/Documentation/Splunk/8.2.6/SearchReference/Dedup) can be easily used to retrieve data without unwanted duplication.
 
-`index=* sourcetype="cisco:intersight:computePhysicalSummaries" | dedup Moid`
+```SPL
+index=* sourcetype="cisco:intersight:computePhysicalSummaries" | dedup Moid`
+```
 
 The technique of using `| dedup Moid` is applicable to all sourcetypes except cisco:intersight:aaaAuditRecords and should be used in most circumstances.
+
+The following search might be useful to understand how many Intersight records of various types exist in Splunk...
+
+```SPL
+index=* sourcetype=cisco:intersight:* | Dedup Moid | chart count by index, sourcetype, source
+```
 
 You may also notice, if you are very familiar with the Intersight API, that there are a few nodes of JSON that are missing in Splunk that are present elsewhere. This is due to some editorial pruning that is occurring in the Add-on. There are some object references in the API results that simply don't serve any purpose in Splunk. The Add-on is pruning these to improve the overall experience and optimize the amount of data that gets pushed to Splunk.
 
@@ -110,36 +147,53 @@ One for each sourcetype...
 | --- | --- |
 | cisco:intersight:aaaAuditRecords | `index=* sourcetype=cisco:intersight:aaaAuditRecords MoType!=iam.UserPreference \| rename MoType as Type \| rename MoDisplayNames.Name{} as Object \| eval Request=json_extract(_raw,"Request") \| table source, Email, Event, Type, Object, Request` |
 | cisco:intersight:condAlarms | `index=* sourcetype=cisco:intersight:condAlarms \| dedup Moid \| search Severity != Cleared \| rename AffectedMoDisplayName as AffectedDevice \| table source, Name, AffectedDevice, Severity, Description` |
-| cisco:intersight:tamAdvisoryInstances | `index=* sourcetype=cisco:intersight:tamAdvisoryInstances \| dedup Advisory.Moid \| rename Advisory.BaseScore as CVSSBaseScore \| rename Advisory.AdvisoryId as Id \| rename Advisory.ObjectType as Type \| rename Advisory.Name as Name \| rename Advisory.Severity.Level as Severity \| rename Advisory.CveIds{} as Attached_CVEs \| table source, Name, Id, Type, CVSSBaseScore, Severity, Attached_CVEs` |
-| cisco:intersight:computePhysicalSummaries | `index=* sourcetype=cisco:intersight:computePhysicalSummaries RegisteredDevice.ConnectionStatus!=Unclaimed \| dedup Moid \| rename NumCpuCoresEnabled as Cores \| rename TotalMemory as RAM \| eval RAM=RAM/1024 \| rename OperPowerState as Power \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| rename RegisteredDevice.ConnectionStatus as Status \| eval Health=case(Criticals >= 1,"Critical", Warnings >= 1,"Warning", 1=1, "Healthy") \| table source, Power, Status, Health, Name, Model,Serial, Firmware, Cores, RAM`
-| cisco:intersight:condHclStatuses | `index=* sourcetype=cisco:intersight:condHclStatuses \| Table source, ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus`
-| cisco:intersight:hyperflexClusters | `index=* sourcetype=cisco:intersight:hyperflexClusters \| dedup Moid \| rename Summary.ResiliencyInfo.State as State \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| rename Encryption.State as SoftwareEncryption \|  eval SoftwareEncryption=case(isnull(SoftwareEncryption), "NONE", 1=1, replace(SoftwareEncryption, "_", " ")) \| Table source, Name, ConnectionStatus, State, HypervisorType, DeploymentType, DriveType, HxVersion, SoftwareEncryption, UtilizationPercentage`
-| cisco:intersight:hyperflexNodes | `index=* sourcetype=cisco:intersight:hyperflexNodes \| dedup Moid \| rename "Drives{}.Usage" as DriveUsage \| rename "EmptySlotsList{}" as EmptySlots \| eval PersistenceDiskCount=mvcount(mvfilter(match(DriveUsage, "PERSISTENCE"))) \| eval OpenDiskSlots=mvcount(EmptySlots) \| table source, HostName, ModelNumber, SerialNumber, Role, Hypervisor, Status, PersistenceDiskCount, OpenDiskSlots`
-| cisco:intersight:networkElementSummaries | `index=* sourcetype=cisco:intersight:networkElementSummaries \| dedup Moid \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Name, Model, Serial, Version, ManagementMode, Criticals, Warnings`
-| cisco:intersight:assetTargets | `index=* sourcetype=cisco:intersight:assetTargets \| dedup Moid \| table source, Name, Status, TargetType, ManagementLocation, ConnectorVersion`
-| cisco:intersight:assetDeviceContractInformations | `index=* sourcetype=cisco:intersight:assetDeviceContractInformations StateContract=OK \| dedup Moid \| table source, DeviceType, PlatformType, DeviceId, ContractStatus, ServiceLevel, ServiceEndDate, WarrantyEndDate`
+| cisco:intersight:computePhysicalSummaries | `index=* sourcetype=cisco:intersight:computePhysicalSummaries RegisteredDevice.ConnectionStatus!=Unclaimed \| dedup Moid \| rename NumCpuCoresEnabled as Cores \| rename TotalMemory as RAM \| eval RAM=RAM/1024 \| rename OperPowerState as Power \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| rename RegisteredDevice.ConnectionStatus as Status \| eval Health=case(Criticals >= 1,"Critical", Warnings >= 1,"Warning", 1=1, "Healthy") \| table source, Power, Status, Health, Name, Model,Serial, Firmware, Cores, RAM` |
+| cisco:intersight:condHclStatuses | `index=* sourcetype=cisco:intersight:condHclStatuses \| Table source, ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus` |
+| cisco:intersight:assetDeviceContractInformations | `index=* sourcetype=cisco:intersight:assetDeviceContractInformations StateContract=OK \| dedup Moid \| table source, DeviceType, PlatformType, DeviceId, ContractStatus, ServiceLevel, ServiceEndDate, WarrantyEndDate` |
+| cisco:intersight:hyperflexClusters | `index=* sourcetype=cisco:intersight:hyperflexClusters \| dedup Moid \| rename Summary.ResiliencyInfo.State as State \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| rename Encryption.State as SoftwareEncryption \|  eval SoftwareEncryption=case(isnull(SoftwareEncryption), "NONE", 1=1, replace(SoftwareEncryption, "_", " ")) \| Table source, Name, ConnectionStatus, State, HypervisorType, DeploymentType, DriveType, HxVersion, SoftwareEncryption, UtilizationPercentage` |
+| cisco:intersight:hyperflexNodes | `index=* sourcetype=cisco:intersight:hyperflexNodes \| dedup Moid \| rename "Drives{}.Usage" as DriveUsage \| rename "EmptySlotsList{}" as EmptySlots \| eval PersistenceDiskCount=mvcount(mvfilter(match(DriveUsage, "PERSISTENCE"))) \| eval OpenDiskSlots=mvcount(EmptySlots) \| table source, HostName, ModelNumber, SerialNumber, Role, Hypervisor, Status, PersistenceDiskCount, OpenDiskSlots` |
+| cisco:intersight:hyperflexStorageContainers | `index=* sourcetype=cisco:intersight:hyperflexStorageContainers \| dedup Moid \| table Cluster.Moid, Name, Type, InUse, EncryptionEnabled, MountStatus, MountSummary, VolumeCount`
+| cisco:intersight:storageNetAppClusters | `index=* sourcetype=cisco:intersight:storageNetAppClusters \| dedup Moid \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| eval StorageUtilization.Total=round('StorageUtilization.Total'/1024/1024/1024/1024, 1) \| eval StorageUtilization.Used=round('StorageUtilization.Used'/1024/1024/1024/1024, 1) \| table source, Name, ConnectionStatus, Model, Version, ClusterHealthStatus, StorageUtilization.Used, StorageUtilization.Total, StorageUtilization.CapacityUtilization, ClusterEfficiency.Ratio` |
+| cisco:intersight:storageNetAppNodes | `index=* sourcetype=cisco:intersight:storageNetAppNodes \| dedup Moid \| table source, Name, Model, Version, AvgPerformanceMetrics.*` |
+| cisco:intersight:storageNetAppVolumes | `index=* sourcetype=cisco:intersight:storageNetAppVolumes \| dedup Moid \| table Array.Moid, Name, State, Type, StorageUtilization.CapacityUtilization, AvgPerformanceMetrics.Latency`
+| cisco:intersight:convergedinfraPods | `index=* sourcetype=cisco:intersight:convergedinfraPods \| dedup Moid \| eval CapacityTB=(round('Summary.StorageCapacity'/1024/1024/1024/1024, 1)) \| table source, Name, Type, CapacityTB, Summary.StorageUtilization` |
+| cisco:intersight:networkElementSummaries | `index=* sourcetype=cisco:intersight:networkElementSummaries \| dedup Moid \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Name, Model, Serial, Version, ManagementMode, Criticals, Warnings` |
+| cisco:intersight:storagePureArrays | `index=* sourcetype=cisco:intersight:storagePureArrays \| dedup Moid \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| eval StorageUtilization.Total=round('StorageUtilization.Total'/1024/1024/1024/1024, 1) \| eval StorageUtilization.Used=round('StorageUtilization.Used'/1024/1024/1024/1024, 1) \| table source, Name, ConnectionStatus, Model, Version, StorageUtilization.Used, StorageUtilization.Total, StorageUtilization.CapacityUtilization` |
+| cisco:intersight:storagePureControllers | `index=* sourcetype=cisco:intersight:storagePureControllers \| dedup Moid \| table Name, Model, Serial, Version, Status, OperationalMode` |
+| cisco:intersight:storagePureVolumes | `index=* sourcetype=cisco:intersight:storagePureVolumes \| dedup Moid \| table Array.Moid, Name, StorageUtilization.CapacityUtilization` |
+| cisco:intersight:assetTargets | `index=* sourcetype=cisco:intersight:assetTargets \| dedup Moid \| table source, Name, Status, TargetType, ManagementLocation, ConnectorVersion` |
 
 And just a few more for fun...
 
-Here's an example where we summarize our compute inventory and demonstrate how we might extract information from the Model field of UCS Servers...
-
-`index=* sourcetype=cisco:intersight:computePhysicalSummaries | dedup Moid | chart count by Model | rex field=Model "^(?<series>.*?)[-\d]" | rex field=Model "(?<model>\w{0,4}\d{3,4}\w?)" | rex field=Model "(?<generation>M\d)" | rex field=Model "M\d(?<variant>\w+)" | rex field=Model "(?<gen_variant>M\d\w*)" | table Model count series model generation variant gen_variant`
-
 Here's an example where we join the computePhysicalSummaries and the networkElementSummaries into a combined table...
 
-`index=* sourcetype=cisco:intersight:*Summaries | dedup Moid | eval version=coalesce(Version,Firmware) | rex field=SourceObjectType "compute\.(?<ComputeType>.*)" | eval Type=coalesce(ComputeType,SwitchType)| rename AlarmSummary.Critical as Criticals | rename AlarmSummary.Warning as Warnings | eval Health=case(Criticals >= 1,"Critical", Warnings >= 1,"Warning", 1=1, "Healthy") | rename RegisteredDevice.ConnectionStatus as Status | table source, Status, Health, Type, Name, Model, Serial, version`
+```SPL
+index=* sourcetype=cisco:intersight:*Summaries | dedup Moid | eval version=coalesce(Version,Firmware) | rex field=SourceObjectType "compute\.(?<ComputeType>.*)" | eval Type=coalesce(ComputeType,SwitchType)| rename AlarmSummary.Critical as Criticals | rename AlarmSummary.Warning as Warnings | eval Health=case(Criticals >= 1,"Critical", Warnings >= 1,"Warning", 1=1, "Healthy") | rename RegisteredDevice.ConnectionStatus as Status | table source, Status, Health, Type, Name, Model, Serial, version
+```
 
 Here's an example where we join the Advisory instances to our other inventory types to provide a detailed view...
 
-`index=* sourcetype=cisco:intersight:tamAdvisoryInstances | dedup Moid | rename AffectedObjectType as type | rename Advisory.AdvisoryId as Id | rename Advisory.Severity.Level as Severity | join type=outer AffectedObjectMoid [search index=* (sourcetype="cisco:intersight:*Summaries" OR sourcetype=cisco:intersight:hyperflexClusters) | dedup Moid | rename Moid as AffectedObjectMoid | eval version=coalesce(Version,Firmware,HxVersion) | eval Model=coalesce(Model,DeploymentType+" "+DriveType)] | sort Severity | table source, Id, Severity, Name, type, Model, Serial, version`
+```SPL
+index=* sourcetype=cisco:intersight:tamAdvisoryInstances | dedup Moid | rename AffectedObjectType as type | rename Advisory.AdvisoryId as Id | rename Advisory.Severity.Level as Severity | join type=outer AffectedObjectMoid [search index=* (sourcetype="cisco:intersight:*Summaries" OR sourcetype=cisco:intersight:hyperflexClusters) | dedup Moid | rename Moid as AffectedObjectMoid | eval version=coalesce(Version,Firmware,HxVersion) | eval Model=coalesce(Model,DeploymentType+" "+DriveType)] | sort Severity | table source, Id, Severity, Name, type, Model, Serial, version`
+```
 
-Here's an example where we join the hyperflexCluster and hyperflexNodes to get an overview of the cluster that is slightly different than the one above, but it now includes counts of the converged nodes and compute-only nodes in the cluster...
+Here's an example where we join the hyperflexCluster, hyperflexNodes, and hyperflexStorageContainers to get an overview of the cluster that is slightly different than the one above, but it now includes counts of the converged nodes and compute-only nodes in the cluster as well as counts of NFS and iSCSI data stores...
 
-`index=* sourcetype=cisco:intersight:hyperflexNodes | dedup Moid | chart count by Cluster.Moid, Role | join Cluster.Moid [search index=* sourcetype=cisco:intersight:hyperflexClusters | dedup Moid | rename Moid as Cluster.Moid ] | rename STORAGE as ConvergedNodes | rename COMPUTE as ComputeOnlyNodes | rename Summary.DataReplicationFactor as RF | eval StorageCapacity.TB=round(StorageCapacity/1024/1024/1024/1024, 1) | rename UtilizationPercentage as Used | eval Used=round(Used, 0)."%" | rename Summary.ResiliencyInfo.NodeFailuresTolerable as FTT | rename HypervisorType as Hypervisor | fields source, ClusterName, DeploymentType, DriveType, Hypervisor, RF, FTT, ConvergedNodes, ComputeOnlyNodes, StorageCapacity.TB, Used`
+```SPL
+index=* sourcetype=cisco:intersight:hyperflexNodes | dedup Moid | chart count by Cluster.Moid, Role | join Cluster.Moid [search index=* sourcetype=cisco:intersight:hyperflexClusters | dedup Moid | rename Moid as Cluster.Moid ] | join Cluster.Moid [search index=* sourcetype=cisco:intersight:hyperflexStorageContainers | dedup Moid | chart count by Cluster.Moid, Type] | rename STORAGE as ConvergedNodes | rename COMPUTE as ComputeOnlyNodes | rename Summary.DataReplicationFactor as RF | eval StorageCapacity.TB=round(StorageCapacity/1024/1024/1024/1024, 1) | rename UtilizationPercentage as Used | eval Used=round(Used, 0)."%" | rename Summary.ResiliencyInfo.NodeFailuresTolerable as FTT | rename HypervisorType as Hypervisor | fields source, ClusterName, DeploymentType, DriveType, Hypervisor, RF, FTT, ConvergedNodes, ComputeOnlyNodes, NFS, iSCSI, StorageCapacity.TB, Used
+```
 
 Here's an example where we join the computePhysicalSummaries with the condHclStatuses to see a more useful HCL compliance view...
 
-`index=* sourcetype=cisco:intersight:computePhysicalSummaries | dedup Moid | rename OperPowerState as Power | join type=outer Moid [search index=* sourcetype=cisco:intersight:condHclStatuses | dedup Moid | Table ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus | rename ManagedObject.Moid as Moid] | Table source, Power, Name, Model, Serial, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus`
+```SPL
+index=* sourcetype=cisco:intersight:computePhysicalSummaries | dedup Moid | rename OperPowerState as Power | join type=outer Moid [search index=* sourcetype=cisco:intersight:condHclStatuses | dedup Moid | Table ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus | rename ManagedObject.Moid as Moid] | Table source, Power, Name, Model, Serial, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus
+```
+
+Here is an example where we get a basic inventory of our FlexPod...
+
+```SPL
+index=* sourcetype=cisco:intersight:convergedinfraPods Type=FlexPod | dedup Moid | eval CapacityTB=(round('Summary.StorageCapacity'/1024/1024/1024/1024, 1)) | rename ServiceItemInstance.Moid as flexpod | join Tags.cisco.meta.solution.flexpod [search index=* sourcetype=cisco:intersight:*  | rex field=sourcetype mode=sed "s/cisco:intersight://" | `intersight_tags` | rename Tags.cisco.meta.solution.flexpod as flexpod | chart count by flexpod, sourcetype] | table Name, Type, Summary.StorageUtilization, computePhysicalSummaries, storage*, networkElementSummaries
+```
 
 ## Tags
 
@@ -157,15 +211,23 @@ So it seems very easy to search for Tags{}.Value=Premier if you wanted to find a
 
 The solution that I've come up with using only native Splunk SPL is pretty complex but appears to be safe to use.  Here is an example...
 
-`index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"Tags./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | search Tags.Intersight.LicenseTier=Premier`
+``` SPL
+index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"Tags./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | search Tags.Intersight.LicenseTier=Premier`
+```
 
-This approach returns all of the available tags as separate fields named `Tags.<Key>`.  This certainly seems much more convenient to use as we can now search the value of specific tags.
+This approach returns all of the available tags as separate fields named `Tags.<Key>`.  This certainly seems much more convenient to use as we can now search the value of specific tags.  The Add-on also provides the above as a macro that can be used like this...
+
+``` SPL
+index=* sourcetype=cisco:intersight:computePhysicalSummaries | `intersight_tags` | stats count by Tags.Intersight.LicenseTier
+```
 
 ![Improved Tag Decoding Example](images/improved_tag.png)
 
 An alternate (and perhaps better) approach is using the [array2object](https://splunkbase.splunk.com/app/6161/) application that is available from Splunkbase.
 
-`index=* sourcetype="cisco:intersight:*" | dedup Moid | array2object path="Tags" key=Key value=Value | search Tags.Intersight.LicenseTier=Premier`
+```SPL
+index=* sourcetype="cisco:intersight:*" | dedup Moid | array2object path="Tags" key=Key value=Value | search Tags.Intersight.LicenseTier=Premier
+```
 
 This approach provides the same end result to the search above with a much cleaner query syntax.
 
@@ -175,11 +237,15 @@ Read more about [array2object at SplunkBase](https://splunkbase.splunk.com/app/6
 
 The default maximum size for an event in splunk is 10KB. It is possible (even likely) that you will have aaaAuditRecords that exceed this size. While it is possible to increase this value so that Splunk can ingest these very large events, a look at the data indicates that the contents of the Results field was always the culprit and often not particularly useful in these large records. If the event is less than 10KB in size, it passes through to Splunk with the Results JSON structure intact. If the event would have exceeded 10k, the Results field is replaced with the value `TRUNCATED` so that the base audit log data is still available in Splunk and able to be extracted properly. Such truncated records can be found using the following search.
 
-`index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED`
+```SPL
+index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED
+```
 
 A further look at the data will indicate that most of these are actually related to routine processing of user preferences and filtering those out gives a much more valuable list of audit logs with truncated Results values.
 
-`index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name`
+```SPL
+index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name
+```
 
 Everything else has been pruned of unhelpful data to the point that it shouldn't exceed the 10KB limit.  If anything does exceeed that 10KB, it will be logged...
 
@@ -193,7 +259,9 @@ The most useful thing will be the log file from the Add-on. This will be called 
 
 It should also be available via the following search...
 
-`index=_* sourcetype=taintersightaddon:log | rex field=_raw "\d+ (?<loglevel>\w+) pid.* \| (?<intersightinput>\w+) \| (?<logmessage>.*)" | search intersightinput=* | table _time, intersightinput, loglevel, logmessage`
+```LOG
+index=_* sourcetype=taintersightaddon:log | rex field=_raw "\d+ (?<loglevel>\w+) pid.* \| (?<intersightinput>\w+) \| (?<logmessage>.*)" | search intersightinput=* | table _time, intersightinput, loglevel, logmessage
+```
 
 Note that if you have multiple inputs (i.e. different Intersight accounts/appliances) configured in the Add-on, the log messages for all of the configured inputs will be interspersed. The Name from the 'Add Input' dialog above is used in the log to differentiate. In these logs, the name EXAMPLE was used.
 
@@ -253,14 +321,3 @@ The default logging level here will be `info` but additional detail can be enabl
 ## Known Issues
 
 [See Issues on Github](https://github.com/jerewill-cisco/intersight-splunk-addon/issues/)
-
-[1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/model/
-[2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/model/
-[3]: https://intersight.com/apidocs/apirefs/api/v1/tam/AdvisoryInstances/model/
-[4]: https://intersight.com/apidocs/apirefs/api/v1/compute/PhysicalSummaries/model/
-[5]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Clusters/model/
-[6]: https://intersight.com/apidocs/apirefs/api/v1/network/ElementSummaries/model/
-[7]: https://intersight.com/apidocs/apirefs/api/v1/asset/Targets/model/
-[8]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Nodes/model/
-[9]: https://intersight.com/apidocs/apirefs/api/v1/cond/HclStatuses/model/
-[10]: https://intersight.com/apidocs/apirefs/api/v1/asset/DeviceContractInformations/model/

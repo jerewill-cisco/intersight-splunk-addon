@@ -524,13 +524,231 @@ def collect_events(helper, ew):
                 else:
                     for i in range(0, len(data['Drives'])):
                         data['Drives'][i] = pop(
-                            ['AccountMoid', 'Ancestors', 'ClassId', 'NodeUuid', 'Uuid', 'SharedScope', 'ObjectType', 'Moid', 'HostName', 'Tags', 'DomainGroupMoid', 'LocatorLed', 'Node', 'Owners', 'Parent', 'PermissionResources', 'HostUuid'], data['Drives'][i])
+                            ['AccountMoid', 'Ancestors', 'ClassId', 'NodeUuid', 'Uuid', 'SharedScope',
+                             'ObjectType', 'Moid', 'HostName', 'Tags', 'DomainGroupMoid', 'LocatorLed',
+                             'Node', 'Owners', 'Parent', 'PermissionResources', 'HostUuid'], data['Drives'][i])
                 write_splunk(index, account_name,
                              'cisco:intersight:hyperflexNodes', data)
+
+    # StorageContainers
+    endpoint = "hyperflex/StorageContainers"
+    if 'hyperflex' in opt_inventory and doInventory:
+        helper.log_debug(
+            f"{s} | Retrieving HX Storage Container Inventory Records")
+        doHxStorageContainers = check_intersight(endpoint)
+
+    if 'hyperflex' in opt_inventory and doInventory and doHxStorageContainers:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Hyperflex storage container records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'Owners', 'PermissionResources', 'SharedScope',
+                           'DomainGroupMoid', 'ClassId', 'ObjectType', 'Uuid', 'Volumes'], data)
+                data['Cluster'] = pop(
+                    ['ClassId', 'link', 'ObjectType'], data['Cluster'])
+                data['StorageUtilization'] = pop(
+                    ['ClassId', 'ObjectType'], data['StorageUtilization'])
+                if data['HostMountStatus'] != None:
+                    for i in range(0, len(data['HostMountStatus'])):
+                        data['HostMountStatus'][i] = pop(
+                            ['ClassId', 'ObjectType'], data['HostMountStatus'][i])
+                write_splunk(index, account_name,
+                             'cisco:intersight:hyperflexStorageContainers', data)
 
     if not 'hyperflex' in opt_inventory:
         helper.log_debug(
             f"{s} | Hyperflex was not selected in the Inventory configuration")
+
+    ##
+    # Netapp Inventory
+    ##
+
+    # NetApp Clusters
+    endpoint = "storage/NetAppClusters"
+    if 'netapp' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving NetApp Cluster Inventory Records")
+        doNetAppClusters = check_intersight(endpoint)
+
+    if 'netapp' in opt_inventory and doInventory and doNetAppClusters:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} NetApp cluster records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Events', 'Key',
+                           'Owners', 'ObjectType', 'PermissionResources', 'SharedScope', 'Uuid'], data)
+                for x in ['AutoSupport', 'AvgPerformanceMetrics', 'ClusterEfficiency', 'RegisteredDevice', 'StorageUtilization']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storageNetAppClusters', data)
+
+    # NetApp Nodes
+    endpoint = "storage/NetAppNodes"
+    if 'netapp' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving NetApp Node Inventory Records")
+        doNetAppNodes = check_intersight(endpoint)
+
+    if 'netapp' in opt_inventory and doInventory and doNetAppNodes:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} NetApp node records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Events', 'Key',
+                           'Owners', 'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'Uuid'], data)
+                for x in ['Array', 'AvgPerformanceMetrics', 'HighAvailability']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                data['Array'] = pop(['link'], data['Array'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storageNetAppNodes', data)
+
+    # NetApp Volumes
+    endpoint = "storage/NetAppVolumes"
+    if 'netapp' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving NetApp Volume Inventory Records")
+        doNetAppVolumes = check_intersight(endpoint)
+
+    if 'netapp' in opt_inventory and doInventory and doNetAppVolumes:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} NetApp volume records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'DiskPool', 'ClassId', 'Events', 'Key',
+                           'Owners', 'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'SnapshotPolicyUuid', 'Tenant', 'Uuid'], data)
+                for x in ['Array', 'AvgPerformanceMetrics', 'StorageUtilization']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                data['Array'] = pop(['link'], data['Array'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storageNetAppVolumes', data)
+
+    # Converged Infra Pods
+    endpoint = "convergedinfra/Pods"
+    if 'netapp' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving NetApp CI Pod Inventory Records")
+        doNetAppPods = check_intersight(endpoint)
+
+    if 'netapp' in opt_inventory and doInventory and doNetAppPods:
+        RESPONSE = r_intersight(
+            f"{endpoint}?$count=True&$filter=Type%20eq%20%27FlexPod%27")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} NetApp CI pod records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$filter=Type%20eq%20%27FlexPod%27&$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'DeploymentType', 'ClassId', 'Organization',
+                           'Owners', 'ObjectType', 'PermissionResources', 'SharedScope', 'PodResourceGroup'], data)
+                for x in ['ServiceItemInstance', 'Summary']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                for x in ['AlarmSummary', 'ComplianceSummary']:
+                    data['Summary'][x] = pop(
+                        ['ClassId', 'ObjectType'], data['Summary'][x])
+                data['ServiceItemInstance'] = pop(
+                    ['link'], data['ServiceItemInstance'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:convergedinfraPods', data)
+
+    if not 'netapp' in opt_inventory:
+        helper.log_debug(
+            f"{s} | NetApp was not selected in the Inventory configuration")
+
+    ##
+    # Pure Inventory
+    ##
+
+    # Pure Arrays
+    endpoint = "storage/PureArrays"
+    if 'pure' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving Pure Array Inventory Records")
+        doPureArrays = check_intersight(endpoint)
+
+    if 'pure' in opt_inventory and doInventory and doPureArrays:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Pure Array records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Owners',
+                           'ObjectType', 'PermissionResources', 'SharedScope', 'Uuid'], data)
+                for x in ['RegisteredDevice', 'StorageUtilization']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storagePureArrays', data)
+
+    # Pure Controllers
+    endpoint = "storage/PureControllers"
+    if 'pure' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving Pure Controller Inventory Records")
+        doPureControllers = check_intersight(endpoint)
+
+    if 'pure' in opt_inventory and doInventory and doPureControllers:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Pure controller records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Owners',
+                           'Parent', 'ObjectType', 'PermissionResources', 'SharedScope'], data)
+                for x in ['RegisteredDevice', 'Array']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                data['Array'] = pop(['link'], data['Array'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storagePureControllers', data)
+
+    # Pure Volumes
+    endpoint = "storage/PureVolumes"
+    if 'pure' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving Pure Controller Inventory Records")
+        doPureVolumes = check_intersight(endpoint)
+
+    if 'pure' in opt_inventory and doInventory and doPureVolumes:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Pure volume records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'Owners', 'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'NaaId', 'RegisteredDevice'], data)
+                for x in ['Array', 'StorageUtilization']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                data['Array'] = pop(['link'], data['Array'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storagePureVolumes', data)
+
+    if not 'pure' in opt_inventory:
+        helper.log_debug(
+            f"{s} | Pure was not selected in the Inventory configuration")
 
     # Epilogue
     end = datetime.now()

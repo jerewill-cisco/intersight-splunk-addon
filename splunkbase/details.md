@@ -4,16 +4,22 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 
 | Options | Intersight API | Splunk sourcetype |
 | --- | --- | --- |
-| AAA Audit Records | [aaa/AuditRecords][1] | cisco:intersight:aaaAuditRecords |
-| Alarms | [cond/Alarms][2] | cisco:intersight:condAlarms |
 | Advisories | [tam/AdvisoryInstances][3] | cisco:intersight:tamAdvisoryInstances |
-| Compute Inventory | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
-| Compute Inventory | [cond/HclStatuses][9] | cisco:intersight:condHclStatuses |
-| Hyperflex Inventory | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
-| Hyperflex Inventory | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
-| Network Inventory | [network/ElementSummaries][6] | cisco:intersight:networkElementSummaries |
-| Target Inventory | [asset/Targets][7] | cisco:intersight:assetTargets |
-| Contract Inventory | [asset/DeviceContractStatusInformations][10] | cisco:intersight:assetDeviceContractInformations |
+| Compute | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
+| Compute | [cond/HclStatuses][9] | cisco:intersight:condHclStatuses |
+| Contract | [asset/DeviceContractStatusInformations][10] | cisco:intersight:assetDeviceContractInformations |
+| Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
+| Hyperflex | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
+| Hyperflex | [hyperflex/StorageContainers][16] | cisco:intersight:hyperflexStorageContainers |
+| NetApp | [storage/NetAppClusters][11] | cisco:intersight:storageNetAppClusters |
+| NetApp | [storage/NetAppNodes][12] | cisco:intersight:storageNetAppNodes |
+| NetApp | [storage/NetAppVolumes][17] | cisco:intersight:storageNetAppVolumes |
+| NetApp | [convergedinfra/Pods][13] | cisco:intersight:convergedinfraPods |
+| Network | [network/ElementSummaries][6] | cisco:intersight:networkElementSummaries |
+| Pure | [storage/PureArrays][14] | cisco:intersight:storagePureArrays |
+| Pure | [storage/PureControllers][15] | cisco:intersight:storagePureControllers |
+| Pure | [storage/PureVolumes][18] | cisco:intersight:storagePureVolumes |
+| Target | [asset/Targets][7] | cisco:intersight:assetTargets |
 
 [1]: https://intersight.com/apidocs/apirefs/api/v1/aaa/AuditRecords/model/
 [2]: https://intersight.com/apidocs/apirefs/api/v1/cond/Alarms/model/
@@ -25,6 +31,14 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 [8]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Nodes/model/
 [9]: https://intersight.com/apidocs/apirefs/api/v1/cond/HclStatuses/model/
 [10]: https://intersight.com/apidocs/apirefs/api/v1/asset/DeviceContractInformations/model/
+[11]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppClusters/model
+[12]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppNodes/model
+[13]: https://intersight.com/apidocs/apirefs/api/v1/convergedinfra/Pods/model
+[14]: https://intersight.com/apidocs/apirefs/api/v1/storage/PureArrays/model/
+[15]: https://intersight.com/apidocs/apirefs/api/v1/storage/PureControllers/model/
+[16]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/StorageContainers/model/
+[17]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppVolumes/model/
+[18]: https://intersight.com/apidocs/apirefs/api/v1/storage/PureVolumes/model/
 
 Further documentation, sample searches, and known issues are all available at [the Github repository](https://github.com/jerewill-cisco/intersight-splunk-addon).
 

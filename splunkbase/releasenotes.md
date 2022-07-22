@@ -54,3 +54,19 @@ If you're wondering what general code cleanup means...
 - Pruned a few items from all of the inventory types to improve consistency and relevance
 - Updated example searches on Github to include RegisteredDevice.ConnectionStatus
 - Added an additional log message to warn when records exceed the 10k size limit
+
+## 1.3.0 - TBD
+
+- Added NetApp, Pure, and Hitachi to Inventory options (Hitachi is not implemented yet)
+- Implemented new sourcetypes for Partner (i.e. Non-Cisco) storage inventory
+  - cisco:intersight:storageNetAppClusters
+  - cisco:intersight:storageNetAppNodes
+  - cisco:intersight:storageNetAppVolumes
+  - cisco:intersight:storagePureArrays
+  - cisco:intersight:storagePureControllers
+  - cisco:intersight:storagePureVolumes
+- In addition, added cisco:intersight:convergedinfraPods to NetApp inventory to support FlexPod, the first Integrated System supported by Intersight
+- Added cisco:intersight:hyperflexStorageContainers to Hyperflex inventory
+- Added a new \`intersight_tags\` macro for converting Tags into fields (see documentation on GitHub for example usage)
+- Added field extractions to cisco:compute:PhysicalSummaries to attempt to decode the Model field into useful sub-bits (see the following fields: ModelGeneration, ModelSeries, ModelType, ModelVariant)
+- Set `DATETIME_CONFIG = NONE` in props.conf for all sourcetypes to prevent automatic datetime extraction

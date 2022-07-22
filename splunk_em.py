@@ -6,10 +6,11 @@ from dotenv import load_dotenv
 
 import input_module_intersight
 
-load_dotenv('example.env')
+load_dotenv('_example.env')
 
 # This code allows us to execute the input for testing without needing additional code from splunk
 # by providing a minimal sub-out of the two classes that splunk passes to the input
+
 
 class SplunkEmHelper:
     # this function provides all of the input-specific configuration data
@@ -23,15 +24,18 @@ class SplunkEmHelper:
         if arg_name == 'validate_ssl':
             return True
         if arg_name == 'enable_aaa_audit_records':
-            return True
+            return False
         if arg_name == 'enable_alarms':
             return True
         if arg_name == 'inventory_interval':
             return 300
         if arg_name == 'inventory':
-            all = {'advisories', 'compute', 'contract',
-                   'network', 'hyperflex', 'target'}
             none = {}
+            all = {'advisories', 'compute', 'contract', 'network',
+                   'hyperflex', 'target', 'pure', 'netapp', 'hitachi'}
+            basic = {'advisories', 'compute', 'contract', 'network', 'target'}
+            hyperflex = {'compute', 'hyperflex'}
+            thirdpartystorage = {'pure', 'netapp', 'hitachi'}
             return all
 
     # this function provides the input name
@@ -85,11 +89,13 @@ class SplunkEmHelper:
 
 helper = SplunkEmHelper()
 
+
 class SplunkEmEventWriter:
     def write_event(self, event):
         event = json.loads(event)
         # print(json.dumps(event, indent=3))
         pass
+
 
 ew = SplunkEmEventWriter()
 
