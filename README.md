@@ -88,6 +88,9 @@ These inventory options are enabled via the multi-select in the input configurat
 | Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
 | Hyperflex | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
 | Hyperflex | [hyperflex/StorageContainers][16] | cisco:intersight:hyperflexStorageContainers |
+| Hitachi | [storage/HitachiArrays][19] | cisco:intersight:storageHitachiClusters |
+| Hitachi | [storage/HitachiControllers][20] | cisco:intersight:storageHitachiControllers |
+| Hitachi | [storage/HitachiVolumes][21] | cisco:intersight:storageHitachiVolumes |
 | NetApp | [storage/NetAppClusters][11] | cisco:intersight:storageNetAppClusters |
 | NetApp | [storage/NetAppNodes][12] | cisco:intersight:storageNetAppNodes |
 | NetApp | [storage/NetAppVolumes][17] | cisco:intersight:storageNetAppVolumes |
@@ -116,6 +119,9 @@ These inventory options are enabled via the multi-select in the input configurat
 [16]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/StorageContainers/model/
 [17]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppVolumes/model/
 [18]: https://intersight.com/apidocs/apirefs/api/v1/storage/PureVolumes/model/
+[19]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiArrays/model/
+[20]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiControllers/model/
+[21]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiVolumes/model/
 
 All of the data from this Add-on can be queried in Splunk using the following [SPL](https://docs.splunk.com/Splexicon:SPL):
 
@@ -152,7 +158,10 @@ One for each sourcetype...
 | cisco:intersight:assetDeviceContractInformations | `index=* sourcetype=cisco:intersight:assetDeviceContractInformations StateContract=OK \| dedup Moid \| table source, DeviceType, PlatformType, DeviceId, ContractStatus, ServiceLevel, ServiceEndDate, WarrantyEndDate` |
 | cisco:intersight:hyperflexClusters | `index=* sourcetype=cisco:intersight:hyperflexClusters \| dedup Moid \| rename Summary.ResiliencyInfo.State as State \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| rename Encryption.State as SoftwareEncryption \|  eval SoftwareEncryption=case(isnull(SoftwareEncryption), "NONE", 1=1, replace(SoftwareEncryption, "_", " ")) \| Table source, Name, ConnectionStatus, State, HypervisorType, DeploymentType, DriveType, HxVersion, SoftwareEncryption, UtilizationPercentage` |
 | cisco:intersight:hyperflexNodes | `index=* sourcetype=cisco:intersight:hyperflexNodes \| dedup Moid \| rename "Drives{}.Usage" as DriveUsage \| rename "EmptySlotsList{}" as EmptySlots \| eval PersistenceDiskCount=mvcount(mvfilter(match(DriveUsage, "PERSISTENCE"))) \| eval OpenDiskSlots=mvcount(EmptySlots) \| table source, HostName, ModelNumber, SerialNumber, Role, Hypervisor, Status, PersistenceDiskCount, OpenDiskSlots` |
-| cisco:intersight:hyperflexStorageContainers | `index=* sourcetype=cisco:intersight:hyperflexStorageContainers \| dedup Moid \| table Cluster.Moid, Name, Type, InUse, EncryptionEnabled, MountStatus, MountSummary, VolumeCount`
+| cisco:intersight:hyperflexStorageContainers | `index=* sourcetype=cisco:intersight:hyperflexStorageContainers \| dedup Moid \| table Cluster.Moid, Name, Type, InUse, EncryptionEnabled, MountStatus, MountSummary, VolumeCount` |
+| cisco: intersight:storageHitachiArrays | `index=* sourcetype=cisco:intersight:storageHitachiArrays \| dedup Moid \| table Name, Model, Serial, TargetCtl, Ctl1MicroVersion, Ctl2MicroVersion, StorageUtilization.CapacityUtilization` |
+| cisco: intersight:storageHitachiControllers | `index=* sourcetype=cisco:intersight:storageHitachiControllers \| dedup Moid \| table Array.Moid, Name, Status` |
+| cisco: intersight:storageHitachiVolumes | `index=* sourcetype=cisco:intersight:storageHitachiVolumes \| dedup Moid \| eval SizeTB = round(Size/1024/1024/1024/1024, 2) \| table Name, RaidLevel, RaidType, SizeTB` |
 | cisco:intersight:storageNetAppClusters | `index=* sourcetype=cisco:intersight:storageNetAppClusters \| dedup Moid \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| eval StorageUtilization.Total=round('StorageUtilization.Total'/1024/1024/1024/1024, 1) \| eval StorageUtilization.Used=round('StorageUtilization.Used'/1024/1024/1024/1024, 1) \| table source, Name, ConnectionStatus, Model, Version, ClusterHealthStatus, StorageUtilization.Used, StorageUtilization.Total, StorageUtilization.CapacityUtilization, ClusterEfficiency.Ratio` |
 | cisco:intersight:storageNetAppNodes | `index=* sourcetype=cisco:intersight:storageNetAppNodes \| dedup Moid \| table source, Name, Model, Version, AvgPerformanceMetrics.*` |
 | cisco:intersight:storageNetAppVolumes | `index=* sourcetype=cisco:intersight:storageNetAppVolumes \| dedup Moid \| table Array.Moid, Name, State, Type, StorageUtilization.CapacityUtilization, AvgPerformanceMetrics.Latency`

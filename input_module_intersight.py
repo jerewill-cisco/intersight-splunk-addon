@@ -739,7 +739,8 @@ def collect_events(helper, ew):
             RESPONSE = r_intersight(
                 f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
-                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'Owners', 'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'NaaId', 'RegisteredDevice'], data)
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'Owners', 'Parent', 'ObjectType',
+                           'PermissionResources', 'SharedScope', 'NaaId', 'RegisteredDevice'], data)
                 for x in ['Array', 'StorageUtilization']:
                     data[x] = pop(['ClassId', 'ObjectType'], data[x])
                 data['Array'] = pop(['link'], data['Array'])
@@ -749,6 +750,85 @@ def collect_events(helper, ew):
     if not 'pure' in opt_inventory:
         helper.log_debug(
             f"{s} | Pure was not selected in the Inventory configuration")
+
+    ##
+    # Hitachi Inventory
+    ##
+
+    # Hitachi Arrays
+    endpoint = "storage/HitachiArrays"
+    if 'hitachi' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving Hitachi Array Inventory Records")
+        doHitachiArrays = check_intersight(endpoint)
+
+    if 'hitachi' in opt_inventory and doInventory and doHitachiArrays:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Hitachi Array records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Owners',
+                           'ObjectType', 'PermissionResources', 'SharedScope', 'Uuid'], data)
+                for x in ['RegisteredDevice', 'StorageUtilization']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storageHitachiArrays', data)
+
+    # Hitachi Controllers
+    endpoint = "storage/HitachiControllers"
+    if 'hitachi' in opt_inventory and doInventory:
+        helper.log_debug(
+            f"{s} | Retrieving Hitachi Controller Inventory Records")
+        doHitachiControllers = check_intersight(endpoint)
+
+    if 'hitachi' in opt_inventory and doInventory and doHitachiControllers:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Hitachi controller records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Owners',
+                           'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'RegisteredDevice'], data)
+                data['Array'] = pop(['ClassId', 'ObjectType', 'link'], data['Array'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storageHitachiControllers', data)
+
+    # Hitachi Volumes
+    endpoint = "storage/HitachiVolumes"
+    if 'hitachi' in opt_inventory and doInventory:
+        helper.log_debug(
+            f"{s} | Retrieving Hitachi Controller Inventory Records")
+        doHitachiVolumes = check_intersight(endpoint)
+
+    if 'hitachi' in opt_inventory and doInventory and doHitachiVolumes:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Hitachi volume records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'Owners', 'Parent', 'ObjectType',
+                           'PermissionResources', 'SharedScope', 'RegisteredDevice', 'Pool', 'ParityGroups', 'ParityGroupIds'], data)
+                for x in ['Array', 'StorageUtilization']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                data['Array'] = pop(['link'], data['Array'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storageHitachiVolumes', data)
+
+    if not 'hitachi' in opt_inventory:
+        helper.log_debug(
+            f"{s} | Hitachi was not selected in the Inventory configuration")
 
     # Epilogue
     end = datetime.now()

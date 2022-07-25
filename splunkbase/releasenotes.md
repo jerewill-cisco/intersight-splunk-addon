@@ -57,8 +57,11 @@ If you're wondering what general code cleanup means...
 
 ## 1.3.0 - TBD
 
-- Added NetApp, Pure, and Hitachi to Inventory options (Hitachi is not implemented yet)
-- Implemented new sourcetypes for Partner (i.e. Non-Cisco) storage inventory
+- Added NetApp, Pure, and Hitachi to Inventory options
+- Implemented new sourcetypes for storage partner storage inventory
+  - cisco:intersight:storageHitachArrays
+  - cisco:intersight:storageHitachiControllers
+  - cisco:intersight:storageHitachiVolumes
   - cisco:intersight:storageNetAppClusters
   - cisco:intersight:storageNetAppNodes
   - cisco:intersight:storageNetAppVolumes
