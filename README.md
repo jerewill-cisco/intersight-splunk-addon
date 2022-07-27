@@ -62,7 +62,7 @@ An HTTP proxy server may be configured for the Add-on by clicking on Configurati
 - Proxy Type : Only `http` type is supported. Selecting `socks4` or `socks5` will cause all of the Inputs to fail.
 - Host : FQDN or IP address of the HTTP proxy server.
 - Port : TCP port number of the proxy service.
-- Username : Username for proxy servers that require Basic Authenitcation.
+- Username : Username for proxy servers that require Basic Authentication.
 - Password : Password for proxy servers that require Basic Authentication.
 - Remote DNS resolution : This option is not used and it's state doesn't matter.
 
@@ -85,12 +85,15 @@ These inventory options are enabled via the multi-select in the input configurat
 | Compute | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
 | Compute | [cond/HclStatuses][9] | cisco:intersight:condHclStatuses |
 | Contract | [asset/DeviceContractStatusInformations][10] | cisco:intersight:assetDeviceContractInformations |
-| Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
-| Hyperflex | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
-| Hyperflex | [hyperflex/StorageContainers][16] | cisco:intersight:hyperflexStorageContainers |
 | Hitachi | [storage/HitachiArrays][19] | cisco:intersight:storageHitachiClusters |
 | Hitachi | [storage/HitachiControllers][20] | cisco:intersight:storageHitachiControllers |
 | Hitachi | [storage/HitachiVolumes][21] | cisco:intersight:storageHitachiVolumes |
+| Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
+| Hyperflex | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
+| Hyperflex | [hyperflex/StorageContainers][16] | cisco:intersight:hyperflexStorageContainers |
+| Hyperflex | [hyperflex/Licenses][24] | cisco"intersight:hyperflexLicenses |
+| Licensing | [License/AccountLicenseData][22] | cisco:intersight:licenseAccountLicenseData |
+| Licensing | [license/LicenseInfos][23] | cisco:intersight:licenseLicenseInfos
 | NetApp | [storage/NetAppClusters][11] | cisco:intersight:storageNetAppClusters |
 | NetApp | [storage/NetAppNodes][12] | cisco:intersight:storageNetAppNodes |
 | NetApp | [storage/NetAppVolumes][17] | cisco:intersight:storageNetAppVolumes |
@@ -122,6 +125,10 @@ These inventory options are enabled via the multi-select in the input configurat
 [19]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiArrays/model/
 [20]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiControllers/model/
 [21]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiVolumes/model/
+[22]: https://intersight.com/apidocs/apirefs/api/v1/license/AccountLicenseData/model/
+[23]: https://intersight.com/apidocs/apirefs/api/v1/license/LicenseInfos/model/
+[24]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Licenses/model/
+
 
 All of the data from this Add-on can be queried in Splunk using the following [SPL](https://docs.splunk.com/Splexicon:SPL):
 
@@ -159,6 +166,7 @@ One for each sourcetype...
 | cisco:intersight:hyperflexClusters | `index=* sourcetype=cisco:intersight:hyperflexClusters \| dedup Moid \| rename Summary.ResiliencyInfo.State as State \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| rename Encryption.State as SoftwareEncryption \|  eval SoftwareEncryption=case(isnull(SoftwareEncryption), "NONE", 1=1, replace(SoftwareEncryption, "_", " ")) \| Table source, Name, ConnectionStatus, State, HypervisorType, DeploymentType, DriveType, HxVersion, SoftwareEncryption, UtilizationPercentage` |
 | cisco:intersight:hyperflexNodes | `index=* sourcetype=cisco:intersight:hyperflexNodes \| dedup Moid \| rename "Drives{}.Usage" as DriveUsage \| rename "EmptySlotsList{}" as EmptySlots \| eval PersistenceDiskCount=mvcount(mvfilter(match(DriveUsage, "PERSISTENCE"))) \| eval OpenDiskSlots=mvcount(EmptySlots) \| table source, HostName, ModelNumber, SerialNumber, Role, Hypervisor, Status, PersistenceDiskCount, OpenDiskSlots` |
 | cisco:intersight:hyperflexStorageContainers | `index=* sourcetype=cisco:intersight:hyperflexStorageContainers \| dedup Moid \| table Cluster.Moid, Name, Type, InUse, EncryptionEnabled, MountStatus, MountSummary, VolumeCount` |
+| cisco:intersight:hyperflexLicenses | `index=* sourcetype=cisco:intersight:hyperflexLicenses \| dedup Moid \| table source, Cluster.Moid, ComplianceState, LicenseRegistration.Status, LicenseAuthorization.Status, SmartLicensingEnabled`
 | cisco: intersight:storageHitachiArrays | `index=* sourcetype=cisco:intersight:storageHitachiArrays \| dedup Moid \| table Name, Model, Serial, TargetCtl, Ctl1MicroVersion, Ctl2MicroVersion, StorageUtilization.CapacityUtilization` |
 | cisco: intersight:storageHitachiControllers | `index=* sourcetype=cisco:intersight:storageHitachiControllers \| dedup Moid \| table Array.Moid, Name, Status` |
 | cisco: intersight:storageHitachiVolumes | `index=* sourcetype=cisco:intersight:storageHitachiVolumes \| dedup Moid \| eval SizeTB = round(Size/1024/1024/1024/1024, 2) \| table Name, RaidLevel, RaidType, SizeTB` |
@@ -171,6 +179,8 @@ One for each sourcetype...
 | cisco:intersight:storagePureControllers | `index=* sourcetype=cisco:intersight:storagePureControllers \| dedup Moid \| table Name, Model, Serial, Version, Status, OperationalMode` |
 | cisco:intersight:storagePureVolumes | `index=* sourcetype=cisco:intersight:storagePureVolumes \| dedup Moid \| table Array.Moid, Name, StorageUtilization.CapacityUtilization` |
 | cisco:intersight:assetTargets | `index=* sourcetype=cisco:intersight:assetTargets \| dedup Moid \| table source, Name, Status, TargetType, ManagementLocation, ConnectorVersion` |
+| cisco:intersight:licenseLicenseInfos | `index=* sourcetype=cisco:intersight:licenseLicenseInfos \| dedup Moid \| eval InUse=round(LicenseCount/LicenseCountPurchased, 2) \| table source, LicenseType, LicenseState, LicenseCount, LicenseCountPurchased, InUse` |
+| cisco:intersight:licenseAccountLicenseData | `index=* sourcetype=cisco:intersight:licenseAccountLicenseData \| dedup Moid \| table source, RegistrationStatus, SyncStatus, DefaultLicenseType, HighestCompliantLicenseTier` |
 
 And just a few more for fun...
 
@@ -216,7 +226,7 @@ Becomes...
 
 ![Default Tag Decoding Example](images/default_spath.png)
 
-So it seems very easy to search for Tags{}.Value=Premier if you wanted to find all of the things with a Premier Intersight.LicenseTier tag, but this is not safe.  The problem is that if there is also a tag named, for example, SLA that also has a value of Premier you'd match it.  In this default model, the Key and the Value have no relationship so using these fields is desceptively dangerous from a data integrity standpoint.
+So it seems very easy to search for Tags{}.Value=Premier if you wanted to find all of the things with a Premier Intersight.LicenseTier tag, but this is not safe.  The problem is that if there is also a tag named, for example, SLA that also has a value of Premier you'd match it.  In this default model, the Key and the Value have no relationship so using these fields is deceptively dangerous from a data integrity standpoint.
 
 The solution that I've come up with using only native Splunk SPL is pretty complex but appears to be safe to use.  Here is an example...
 
@@ -256,7 +266,7 @@ A further look at the data will indicate that most of these are actually related
 index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name
 ```
 
-Everything else has been pruned of unhelpful data to the point that it shouldn't exceed the 10KB limit.  If anything does exceeed that 10KB, it will be logged...
+Everything else has been pruned of unhelpful data to the point that it shouldn't exceed the 10KB limit.  If anything does exceed that 10KB, it will be logged...
 
 `2022-07-15 12:45:20,726 INFO pid=12445 tid=MainThread file=base_modinput.py:log_warning:302 | EXAMPLE | Record exceeds 10k limit!  Moid=62b22eeb656c6c2d32394990 Type=hyperflex.Node`
 
@@ -268,8 +278,8 @@ The most useful thing will be the log file from the Add-on. This will be called 
 
 It should also be available via the following search...
 
-```LOG
-index=_* sourcetype=taintersightaddon:log | rex field=_raw "\d+ (?<loglevel>\w+) pid.* \| (?<intersightinput>\w+) \| (?<logmessage>.*)" | search intersightinput=* | table _time, intersightinput, loglevel, logmessage
+```SPL
+index=_* sourcetype=taintersightaddon:log input=* | table _time input, severity, message
 ```
 
 Note that if you have multiple inputs (i.e. different Intersight accounts/appliances) configured in the Add-on, the log messages for all of the configured inputs will be interspersed. The Name from the 'Add Input' dialog above is used in the log to differentiate. In these logs, the name EXAMPLE was used.

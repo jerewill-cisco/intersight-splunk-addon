@@ -32,8 +32,8 @@ class SplunkEmHelper:
         if arg_name == 'inventory':
             none = {}
             all = {'advisories', 'compute', 'contract', 'network',
-                   'hyperflex', 'target', 'pure', 'netapp', 'hitachi'}
-            basic = {'advisories', 'compute', 'contract', 'network', 'target'}
+                   'hyperflex', 'target', 'pure', 'netapp', 'hitachi', 'license'}
+            basic = {'advisories', 'compute', 'contract', 'network', 'target', 'license'}
             hyperflex = {'compute', 'hyperflex'}
             thirdpartystorage = {'pure', 'netapp', 'hitachi'}
             return all

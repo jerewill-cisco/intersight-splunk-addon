@@ -2,20 +2,25 @@
 
 The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/apidocs/introduction/overview/) to retrieve various kinds of data. Multiple inputs for different Intersight accounts/appliances are configurable and each account/appliance can optionally retrieve the following data types. Events are in JSON format.
 
+>New Inventory types are not automatically added to existing configurations.  Please review your input configurations after upgrading to enable the new options.
+
 | Options | Intersight API | Splunk sourcetype |
 | --- | --- | --- |
-| AAA Audit Records | [aaa/AuditRecords][1] | cisco:intersight:aaaAuditRecords |
-| Alarms | [cond/Alarms][2] | cisco:intersight:condAlarms |
+| Enable AAA Audit Records | [aaa/AuditRecords][1] | cisco:intersight:aaaAuditRecords |
+| Enable Alarms | [cond/Alarms][2] | cisco:intersight:condAlarms |
 | Advisories | [tam/AdvisoryInstances][3] | cisco:intersight:tamAdvisoryInstances |
 | Compute | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
 | Compute | [cond/HclStatuses][9] | cisco:intersight:condHclStatuses |
 | Contract | [asset/DeviceContractStatusInformations][10] | cisco:intersight:assetDeviceContractInformations |
-| Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
-| Hyperflex | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
-| Hyperflex | [hyperflex/StorageContainers][16] | cisco:intersight:hyperflexStorageContainers |
 | Hitachi | [storage/HitachiArrays][19] | cisco:intersight:storageHitachiClusters |
 | Hitachi | [storage/HitachiControllers][20] | cisco:intersight:storageHitachiControllers |
 | Hitachi | [storage/HitachiVolumes][21] | cisco:intersight:storageHitachiVolumes |
+| Hyperflex | [hyperflex/Clusters][5] | cisco:intersight:hyperflexClusters |
+| Hyperflex | [hyperflex/Nodes][8] | cisco:intersight:hyperflexNodes |
+| Hyperflex | [hyperflex/StorageContainers][16] | cisco:intersight:hyperflexStorageContainers |
+| Hyperflex | [hyperflex/Licenses][24] | cisco"intersight:hyperflexLicenses |
+| Licensing | [License/AccountLicenseData][22] | cisco:intersight:licenseAccountLicenseData |
+| Licensing | [license/LicenseInfos][23] | cisco:intersight:licenseLicenseInfos
 | NetApp | [storage/NetAppClusters][11] | cisco:intersight:storageNetAppClusters |
 | NetApp | [storage/NetAppNodes][12] | cisco:intersight:storageNetAppNodes |
 | NetApp | [storage/NetAppVolumes][17] | cisco:intersight:storageNetAppVolumes |
@@ -47,6 +52,9 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 [19]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiArrays/model/
 [20]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiControllers/model/
 [21]: https://intersight.com/apidocs/apirefs/api/v1/storage/HitachiVolumes/model/
+[22]: https://intersight.com/apidocs/apirefs/api/v1/license/AccountLicenseData/model/
+[23]: https://intersight.com/apidocs/apirefs/api/v1/license/LicenseInfos/model/
+[24]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Licenses/model/
 
 Further documentation, sample searches, and known issues are all available at [the Github repository](https://github.com/jerewill-cisco/intersight-splunk-addon).
 

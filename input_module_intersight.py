@@ -560,6 +560,31 @@ def collect_events(helper, ew):
                 write_splunk(index, account_name,
                              'cisco:intersight:hyperflexStorageContainers', data)
 
+    # Licenses
+    endpoint = "hyperflex/Licenses"
+    if 'hyperflex' in opt_inventory and doInventory:
+        helper.log_debug(
+            f"{s} | Retrieving HX License Inventory Records")
+        doHxLicenses = check_intersight(endpoint)
+
+    if 'hyperflex' in opt_inventory and doInventory and doHxLicenses:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} Hyperflex license records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'Owners', 'PermissionResources', 'SharedScope',
+                           'DomainGroupMoid', 'ClassId', 'ObjectType', 'RegisteredDevice'], data)
+                for x in ['LicenseRegistration', 'LicenseAuthorization', 'Cluster']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                data['Cluster'] = pop(['link'], data['Cluster'])
+                write_splunk(index, account_name,
+                             'cisco:intersight:hyperflexLicenses', data)
+
     if not 'hyperflex' in opt_inventory:
         helper.log_debug(
             f"{s} | Hyperflex was not selected in the Inventory configuration")
@@ -797,7 +822,8 @@ def collect_events(helper, ew):
             for data in RESPONSE.json()['Results']:
                 data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Owners',
                            'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'RegisteredDevice'], data)
-                data['Array'] = pop(['ClassId', 'ObjectType', 'link'], data['Array'])
+                data['Array'] = pop(
+                    ['ClassId', 'ObjectType', 'link'], data['Array'])
                 write_splunk(index, account_name,
                              'cisco:intersight:storageHitachiControllers', data)
 
@@ -829,6 +855,49 @@ def collect_events(helper, ew):
     if not 'hitachi' in opt_inventory:
         helper.log_debug(
             f"{s} | Hitachi was not selected in the Inventory configuration")
+
+    ###
+    # License Inventory
+    ###
+    endpoint = "license/AccountLicenseData"
+    if 'license' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving License Records")
+        doLicense = check_intersight(endpoint)
+
+    if 'license' in opt_inventory and doInventory and doLicense:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} license account records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Account', 'AgentData', 'Ancestors', 'DomainGroupMoid',
+                           'PermissionResources', 'Owners', 'SharedScope', 'ClassId', 'ObjectType'], data)
+                write_splunk(
+                    index, account_name, 'cisco:intersight:licenseAccountLicenseData', data=data)
+
+    endpoint = "license/LicenseInfos"
+    if 'license' in opt_inventory and doInventory and doLicense:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} license info records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'Parent',
+                           'PermissionResources', 'Owners', 'SharedScope', 'ClassId', 'ObjectType'], data)
+                write_splunk(
+                    index, account_name, 'cisco:intersight:licenseLicenseInfos', data=data)
+
+    if not 'license' in opt_inventory:
+        helper.log_debug(
+            f"{s} | License was not selected in the Inventory configuration")
 
     # Epilogue
     end = datetime.now()
