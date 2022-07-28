@@ -657,12 +657,37 @@ def collect_events(helper, ew):
                 f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(['Ancestors', 'DomainGroupMoid', 'DiskPool', 'ClassId', 'Events', 'Key',
-                           'Owners', 'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'SnapshotPolicyUuid', 'Tenant', 'Uuid'], data)
-                for x in ['Array', 'AvgPerformanceMetrics', 'StorageUtilization']:
+                           'Owners', 'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'SnapshotPolicyUuid', 'Uuid'], data)
+                for x in ['AvgPerformanceMetrics', 'StorageUtilization']:
+                    data[x] = pop(['ClassId', 'ObjectType'], data[x])
+                for x in ['Array', 'Tenant']:
+                    data[x] = pop(['ClassId', 'ObjectType', 'link'], data[x])
+                write_splunk(index, account_name,
+                             'cisco:intersight:storageNetAppVolumes', data)
+
+    # NetApp Storage VMs
+    endpoint = "storage/NetAppStorageVms"
+    if 'netapp' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving NetApp Storage VM Inventory Records")
+        doNetAppStorageVms = check_intersight(endpoint)
+
+    if 'netapp' in opt_inventory and doInventory and doNetAppStorageVms:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} NetApp storage vm records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'Events', 'Key', 'DiskPool',
+                           'Owners', 'Parent', 'ObjectType', 'PermissionResources', 'SharedScope', 'Uuid'], data)
+                for x in ['Array', 'AvgPerformanceMetrics']:
                     data[x] = pop(['ClassId', 'ObjectType'], data[x])
                 data['Array'] = pop(['link'], data['Array'])
                 write_splunk(index, account_name,
-                             'cisco:intersight:storageNetAppVolumes', data)
+                             'cisco:intersight:storageNetAppStorageVms', data)
 
     # Converged Infra Pods
     endpoint = "convergedinfra/Pods"

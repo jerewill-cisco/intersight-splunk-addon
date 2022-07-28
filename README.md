@@ -96,6 +96,7 @@ These inventory options are enabled via the multi-select in the input configurat
 | Licensing | [license/LicenseInfos][23] | cisco:intersight:licenseLicenseInfos
 | NetApp | [storage/NetAppClusters][11] | cisco:intersight:storageNetAppClusters |
 | NetApp | [storage/NetAppNodes][12] | cisco:intersight:storageNetAppNodes |
+| NetApp | [storage/NetAppStorageVms][25] | cisco:intersight:storageNetAppStorageVms |
 | NetApp | [storage/NetAppVolumes][17] | cisco:intersight:storageNetAppVolumes |
 | NetApp | [convergedinfra/Pods][13] | cisco:intersight:convergedinfraPods |
 | Network | [network/ElementSummaries][6] | cisco:intersight:networkElementSummaries |
@@ -128,6 +129,7 @@ These inventory options are enabled via the multi-select in the input configurat
 [22]: https://intersight.com/apidocs/apirefs/api/v1/license/AccountLicenseData/model/
 [23]: https://intersight.com/apidocs/apirefs/api/v1/license/LicenseInfos/model/
 [24]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Licenses/model/
+[25]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppStorageVms/model/
 
 
 All of the data from this Add-on can be queried in Splunk using the following [SPL](https://docs.splunk.com/Splexicon:SPL):
@@ -172,6 +174,7 @@ One for each sourcetype...
 | cisco: intersight:storageHitachiVolumes | `index=* sourcetype=cisco:intersight:storageHitachiVolumes \| dedup Moid \| eval SizeTB = round(Size/1024/1024/1024/1024, 2) \| table Name, RaidLevel, RaidType, SizeTB` |
 | cisco:intersight:storageNetAppClusters | `index=* sourcetype=cisco:intersight:storageNetAppClusters \| dedup Moid \| rename RegisteredDevice.ConnectionStatus as ConnectionStatus \| eval StorageUtilization.Total=round('StorageUtilization.Total'/1024/1024/1024/1024, 1) \| eval StorageUtilization.Used=round('StorageUtilization.Used'/1024/1024/1024/1024, 1) \| table source, Name, ConnectionStatus, Model, Version, ClusterHealthStatus, StorageUtilization.Used, StorageUtilization.Total, StorageUtilization.CapacityUtilization, ClusterEfficiency.Ratio` |
 | cisco:intersight:storageNetAppNodes | `index=* sourcetype=cisco:intersight:storageNetAppNodes \| dedup Moid \| table source, Name, Model, Version, AvgPerformanceMetrics.*` |
+| cisco:intersight:storageNetAppStorageVms | `sourcetype=cisco:intersight:storageNetAppStorageVms \| table Name, State, Subtype, *Enabled`
 | cisco:intersight:storageNetAppVolumes | `index=* sourcetype=cisco:intersight:storageNetAppVolumes \| dedup Moid \| table Array.Moid, Name, State, Type, StorageUtilization.CapacityUtilization, AvgPerformanceMetrics.Latency`
 | cisco:intersight:convergedinfraPods | `index=* sourcetype=cisco:intersight:convergedinfraPods \| dedup Moid \| eval CapacityTB=(round('Summary.StorageCapacity'/1024/1024/1024/1024, 1)) \| table source, Name, Type, CapacityTB, Summary.StorageUtilization` |
 | cisco:intersight:networkElementSummaries | `index=* sourcetype=cisco:intersight:networkElementSummaries \| dedup Moid \| rename AlarmSummary.Critical as Criticals \| rename AlarmSummary.Warning as Warnings \| table source, Name, Model, Serial, Version, ManagementMode, Criticals, Warnings` |
@@ -212,6 +215,12 @@ Here is an example where we get a basic inventory of our FlexPod...
 
 ```SPL
 index=* sourcetype=cisco:intersight:convergedinfraPods Type=FlexPod | dedup Moid | eval CapacityTB=(round('Summary.StorageCapacity'/1024/1024/1024/1024, 1)) | rename ServiceItemInstance.Moid as flexpod | join Tags.cisco.meta.solution.flexpod [search index=* sourcetype=cisco:intersight:*  | rex field=sourcetype mode=sed "s/cisco:intersight://" | `intersight_tags` | rename Tags.cisco.meta.solution.flexpod as flexpod | chart count by flexpod, sourcetype] | table Name, Type, Summary.StorageUtilization, computePhysicalSummaries, storage*, networkElementSummaries
+```
+
+Here is an example where we bring together NetApp Cluster, StorageVM, and Volumes for an expanded view of NetApp Volumes.
+
+```SPL
+index=* sourcetype=cisco:intersight:storageNetAppVolumes | dedup Moid | rename Array.Moid as array | rename Tenant.Moid as vm | rename Name as VolumeName | eval SizeTB=round('StorageUtilization.Total'/1024/1024/1024/1024, 2) | eval UsedTB=round('StorageUtilization.Used'/1024/1024/1024/1024, 2) | join array [search index=* sourcetype=cisco:intersight:storageNetAppClusters | dedup Moid | rename Moid as array | rename Name as ArrayName | rename Model as ArrayModel | table array, ArrayName, ArrayModel] | join vm [search index=* sourcetype=cisco:intersight:storageNetAppStorageVms | dedup Moid | rename Moid as vm | rename Name as VmName] | table source, ArrayName, ArrayModel, VmName, VolumeName, UsedTB, SizeTB, Type | sort source, ArrayName, VmName, VolumeName
 ```
 
 ## Tags

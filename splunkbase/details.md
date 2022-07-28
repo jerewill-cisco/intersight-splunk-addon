@@ -4,10 +4,10 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 
 >New Inventory types are not automatically added to existing configurations.  Please review your input configurations after upgrading to enable the new options.
 
-| Options | Intersight API | Splunk sourcetype |
+| Option | Intersight API | Splunk sourcetype |
 | --- | --- | --- |
-| Enable AAA Audit Records | [aaa/AuditRecords][1] | cisco:intersight:aaaAuditRecords |
-| Enable Alarms | [cond/Alarms][2] | cisco:intersight:condAlarms |
+| AAA Audit Records | [aaa/AuditRecords][1] | cisco:intersight:aaaAuditRecords |
+| Alarms | [cond/Alarms][2] | cisco:intersight:condAlarms |
 | Advisories | [tam/AdvisoryInstances][3] | cisco:intersight:tamAdvisoryInstances |
 | Compute | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
 | Compute | [cond/HclStatuses][9] | cisco:intersight:condHclStatuses |
@@ -23,6 +23,7 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 | Licensing | [license/LicenseInfos][23] | cisco:intersight:licenseLicenseInfos
 | NetApp | [storage/NetAppClusters][11] | cisco:intersight:storageNetAppClusters |
 | NetApp | [storage/NetAppNodes][12] | cisco:intersight:storageNetAppNodes |
+| NetApp | [storage/NetAppStorageVms][25] | cisco:intersight:storageNetAppStorageVms |
 | NetApp | [storage/NetAppVolumes][17] | cisco:intersight:storageNetAppVolumes |
 | NetApp | [convergedinfra/Pods][13] | cisco:intersight:convergedinfraPods |
 | Network | [network/ElementSummaries][6] | cisco:intersight:networkElementSummaries |
@@ -55,6 +56,7 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 [22]: https://intersight.com/apidocs/apirefs/api/v1/license/AccountLicenseData/model/
 [23]: https://intersight.com/apidocs/apirefs/api/v1/license/LicenseInfos/model/
 [24]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Licenses/model/
+[25]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppStorageVms/model/
 
 Further documentation, sample searches, and known issues are all available at [the Github repository](https://github.com/jerewill-cisco/intersight-splunk-addon).
 
