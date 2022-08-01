@@ -426,8 +426,8 @@ Here's an example where we join the computePhysicalSummaries with the condHclSta
 index=* sourcetype=cisco:intersight:computePhysicalSummaries 
 | dedup Moid 
 | rename OperPowerState as Power 
-| join type=outer Moid [search index=* sourcetype=cisco:intersight:condHclStatuses | dedup Moid | Table ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus | rename ManagedObject.Moid as Moid] 
-| Table source, Power, Name, Model, Serial, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus
+| join type=outer Moid [search index=* sourcetype=cisco:intersight:condHclStatuses | dedup Moid | table ManagedObject.Moid, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus | rename ManagedObject.Moid as Moid] 
+| table source, Power, Name, Model, Serial, Status, Reason, HardwareStatus, SoftwareStatus, ComponentStatus
 ```
 
 Here is an example where we get a basic inventory of our FlexPod...
@@ -472,13 +472,25 @@ So it seems very easy to search for Tags{}.Value=Premier if you wanted to find a
 The solution that I've come up with using only native Splunk SPL is pretty complex but appears to be safe to use.  Here is an example...
 
 ``` SPL
-index=* sourcetype="cisco:intersight:*" | dedup Moid | rename Tags{}.Key as Key, Tags{}.Value as Value | eval zip=mvzip(Key,Value, ":") | mvexpand zip |rex field=zip mode=sed "s/$/\"}/g" |rex field=zip mode=sed "s/^/{\"Tags./g"| rex field=zip mode=sed "s/:/\": \"/g" | spath input=zip | transaction Moid | search Tags.Intersight.LicenseTier=Premier`
+index=* sourcetype="cisco:intersight:*" 
+| dedup Moid 
+| rename Tags{}.Key as Key, Tags{}.Value as Value 
+| eval zip=mvzip(Key,Value, ":") | mvexpand zip 
+|rex field=zip mode=sed "s/$/\"}/g" 
+|rex field=zip mode=sed "s/^/{\"Tags./g"
+| rex field=zip mode=sed "s/:/\": \"/g" 
+| spath input=zip 
+| transaction Moid 
+| stats count by Tags.Intersight.LicenseTier
 ```
 
 This approach returns all of the available tags as separate fields named `Tags.<Key>`.  This certainly seems much more convenient to use as we can now search the value of specific tags.  The Add-on also provides the above as a macro that can be used like this...
 
 ``` SPL
-index=* sourcetype=cisco:intersight:computePhysicalSummaries | `intersight_tags` | stats count by Tags.Intersight.LicenseTier
+index=* sourcetype=cisco:intersight:*
+| dedup Moid
+| `intersight_tags` 
+| stats count by source, Tags.Intersight.LicenseTier
 ```
 
 ![Improved Tag Decoding Example](images/improved_tag.png)
@@ -486,10 +498,13 @@ index=* sourcetype=cisco:intersight:computePhysicalSummaries | `intersight_tags`
 An alternate (and perhaps better) approach is using the [array2object](https://splunkbase.splunk.com/app/6161/) application that is available from Splunkbase.
 
 ```SPL
-index=* sourcetype="cisco:intersight:*" | dedup Moid | array2object path="Tags" key=Key value=Value | search Tags.Intersight.LicenseTier=Premier
+index=* sourcetype="cisco:intersight:*" 
+| dedup Moid 
+| array2object path="Tags" key=Key value=Value 
+| stats count by source, Tags.Intersight.LicenseTier
 ```
 
-This approach provides the same end result to the search above with a much cleaner query syntax.
+This approach provides the same end result to the searches above with a much cleaner query syntax.
 
 Read more about [array2object at SplunkBase](https://splunkbase.splunk.com/app/6161/).
 
@@ -504,7 +519,9 @@ index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED
 A further look at the data will indicate that most of these are actually related to routine processing of user preferences and filtering those out gives a much more valuable list of audit logs with truncated Results values.
 
 ```SPL
-index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference | rename MoDisplayNames.Name{} as name |table source, Email, Event, MoType, name
+index=* sourcetype=cisco:intersight:aaaAuditRecords Request=TRUNCATED MoType!=iam.UserPreference 
+| rename MoDisplayNames.Name{} as name 
+| table source, Email, Event, MoType, name
 ```
 
 Everything else has been pruned of unhelpful data to the point that it shouldn't exceed the 10KB limit.  If anything does exceed that 10KB, it will be logged...
@@ -520,7 +537,8 @@ The most useful thing will be the log file from the Add-on. This will be called 
 It should also be available via the following search...
 
 ```SPL
-index=_* sourcetype=taintersightaddon:log input=* | table _time input, severity, message
+index=_* sourcetype=taintersightaddon:log input=* 
+| table _time input, severity, message
 ```
 
 Note that if you have multiple inputs (i.e. different Intersight accounts/appliances) configured in the Add-on, the log messages for all of the configured inputs will be interspersed. The Name from the 'Add Input' dialog above is used in the log to differentiate. In these logs, the name EXAMPLE was used.
