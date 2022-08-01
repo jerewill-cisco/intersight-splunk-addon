@@ -384,13 +384,25 @@ index=* sourcetype=cisco:intersight:licenseAccountLicenseData
 Here's an example where we join the computePhysicalSummaries and the networkElementSummaries into a combined table...
 
 ```SPL
-index=* sourcetype=cisco:intersight:*Summaries | dedup Moid | eval version=coalesce(Version,Firmware) | rex field=SourceObjectType "compute\.(?<ComputeType>.*)" | eval Type=coalesce(ComputeType,SwitchType)| rename AlarmSummary.Critical as Criticals | rename AlarmSummary.Warning as Warnings | eval Health=case(Criticals >= 1,"Critical", Warnings >= 1,"Warning", 1=1, "Healthy") | rename RegisteredDevice.ConnectionStatus as Status | table source, Status, Health, Type, Name, Model, Serial, version
+index=* sourcetype=cisco:intersight:*Summaries 
+| dedup Moid 
+| eval version=coalesce(Version,Firmware) 
+| rex field=SourceObjectType "compute\.(?<ComputeType>.*)" 
+| eval Type=coalesce(ComputeType,SwitchType)
+| rename AlarmSummary.Critical as Criticals, AlarmSummary.Warning as Warnings 
+| eval Health=case(Criticals >= 1,"Critical", Warnings >= 1,"Warning", 1=1, "Healthy") 
+| rename RegisteredDevice.ConnectionStatus as Status | table source, Status, Health, Type, Name, Model, Serial, version
 ```
 
 Here's an example where we join the Advisory instances to our other inventory types to provide a detailed view...
 
 ```SPL
-index=* sourcetype=cisco:intersight:tamAdvisoryInstances | dedup Moid | rename AffectedObjectType as type | rename Advisory.AdvisoryId as Id | rename Advisory.Severity.Level as Severity | join type=outer AffectedObjectMoid [search index=* (sourcetype="cisco:intersight:*Summaries" OR sourcetype=cisco:intersight:hyperflexClusters) | dedup Moid | rename Moid as AffectedObjectMoid | eval version=coalesce(Version,Firmware,HxVersion) | eval Model=coalesce(Model,DeploymentType+" "+DriveType)] | sort Severity | table source, Id, Severity, Name, type, Model, Serial, version`
+index=* sourcetype=cisco:intersight:tamAdvisoryInstances 
+| dedup Moid 
+| rename AffectedObjectType as type, Advisory.AdvisoryId as Id, Advisory.Severity.Level as Severity 
+| join type=outer AffectedObjectMoid [search index=* (sourcetype="cisco:intersight:*Summaries" OR sourcetype=cisco:intersight:hyperflexClusters) | dedup Moid | rename Moid as AffectedObjectMoid | eval version=coalesce(Version,Firmware,HxVersion) | eval Model=coalesce(Model,DeploymentType+" "+DriveType)] 
+| sort Severity 
+| table source, Id, Severity, Name, type, Model, Serial, version
 ```
 
 Here's an example where we join the hyperflexCluster, hyperflexNodes, and hyperflexStorageContainers to get an overview of the cluster that is slightly different than the one above, but it now includes counts of the converged nodes and compute-only nodes in the cluster as well as counts of NFS and iSCSI data stores...
