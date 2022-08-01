@@ -144,7 +144,8 @@ index=* sourcetype=cisco:intersight:*
 In many cases, this will retrieve duplicate records as alarms are updated or inventory is regularly re-imported. The [dedup command](https://docs.splunk.com/Documentation/Splunk/8.2.6/SearchReference/Dedup) can be easily used to retrieve data without unwanted duplication.
 
 ```SPL
-index=* sourcetype="cisco:intersight:computePhysicalSummaries" | dedup Moid`
+index=* sourcetype="cisco:intersight:computePhysicalSummaries" 
+| dedup Moid`
 ```
 
 The technique of using `| dedup Moid` is applicable to all sourcetypes except cisco:intersight:aaaAuditRecords and should be used in most circumstances.
@@ -152,7 +153,9 @@ The technique of using `| dedup Moid` is applicable to all sourcetypes except ci
 The following search might be useful to understand how many Intersight records of various types exist in Splunk...
 
 ```SPL
-index=* sourcetype=cisco:intersight:* | Dedup Moid | chart count by index, sourcetype, source
+index=* sourcetype=cisco:intersight:* 
+| dedup Moid 
+| chart count by index, sourcetype, source
 ```
 
 You may also notice, if you are very familiar with the Intersight API, that there are things that are missing in Splunk that are present elsewhere. This is due to editorial pruning that is occurring in the Add-on. There are some object references in the API results that simply don't serve any purpose in Splunk. The Add-on is pruning these to improve the overall experience and optimize the amount of data that gets pushed to Splunk.  Likewise, some of the items that are presented in the API as Mo.Ref references are expanded with certain properties selected.  Thus, **most** of the mo.MoRef objects that you would encounter in the API are either removed or expanded into something more useful.
