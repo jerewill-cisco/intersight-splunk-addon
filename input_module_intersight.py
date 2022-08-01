@@ -331,6 +331,8 @@ def collect_events(helper, ew):
     ###
     # Compute Inventory
     ###
+
+    # Servers
     endpoint = "compute/PhysicalSummaries"
     if 'compute' in opt_inventory and doInventory:
         helper.log_debug(f"{s} | Retrieving Compute Inventory Records")
@@ -347,11 +349,14 @@ def collect_events(helper, ew):
                 f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(
-                    ['Ancestors', 'PermissionResources', 'Owners', 'DomainGroupMoid', 'ClassId', 'FaultSummary', 'EquipmentChassis', 'InventoryDeviceInfo', 'KvmVendor', 'ObjectType', 'ScaledMode', 'Rn', 'SharedScope'], data)
+                    ['Ancestors', 'Parent', 'Uuid', 'HardwareUuid', 'TopologyScanStatus', 'PermissionResources', 'Owners', 'DomainGroupMoid', 'ClassId', 'FaultSummary', 'Personality', 'InventoryDeviceInfo', 'KvmVendor', 'ObjectType', 'ScaledMode', 'Rn', 'SharedScope'], data)
                 data['RegisteredDevice'] = pop(
                     ['ClassId', 'ObjectType'], data['RegisteredDevice'])
                 data['AlarmSummary'] = pop(
                     ['ClassId', 'ObjectType'], data['AlarmSummary'])
+                if data['EquipmentChassis'] != None:
+                    data['EquipmentChassis'] = pop(
+                        ['ClassId', 'ObjectType', 'link'], data['EquipmentChassis'])
                 write_splunk(index, account_name,
                              'cisco:intersight:computePhysicalSummaries', data)
                 # try to get HCL data also
@@ -372,6 +377,48 @@ def collect_events(helper, ew):
                     else:
                         helper.log_debug(
                             f"{s} | HCL for {data['Moid']} not found")
+
+    # Chassis
+    endpoint = "equipment/Chasses"
+    if 'compute' in opt_inventory and doInventory:
+        helper.log_debug(f"{s} | Retrieving Chassis Inventory Records")
+        doChassis = check_intersight(endpoint)
+
+    if 'compute' in opt_inventory and doInventory and doChassis:
+        RESPONSE = r_intersight(f"{endpoint}?$count=True")
+        count = RESPONSE.json()['Count']
+        helper.log_info(
+            f"{s} | Found {str(count)} chassis inventory records to retrieve")
+        results_per_page = 10  # adjust the number of results we pull per API call
+        for i in range(0, count, results_per_page):
+            RESPONSE = r_intersight(
+                f"{endpoint}?$top={results_per_page}&$skip={str(i)}&$expand=Siocs($select=ConnectionPath,ConnectionStatus,Dn,Model,OperState,Serial,SystemIoControllerId),Ioms($select=ConnectionPath,ConnectionStatus,Dn,Model,ModuleId,OperReason,OperState,Serial,Side,Version,Vid),FanControl($select=Mode),Fanmodules($select=Model,OperState,OperReason),PsuControl($select=Redundancy),Psus($select=Model,OperReason,OperState,PsuId,PsuInputSrc,PsuWattage,Voltage),ExpanderModules($select=Dn,Model,ModuleId,OperReason,OperState,Serial),PowerControlState($select=ExtendedPowerCapacity,AllocatedPower,GridMaxPower,MaxRequiredPower,MinRequiredPower,N1MaxPower,N2MaxPower,NonRedundantMaxPower,PowerRebalancing,PowerSaveMode)")
+            for data in RESPONSE.json()['Results']:
+                data = pop(['Ancestors', 'ClassId', 'DeviceMoId', 'DomainGroupMoid', 'FaultSummary', 'InventoryDeviceInfo', 'Sasexpanders', 'StorageEnclosures',
+                           'LocatorLed', 'ObjectType', 'Owners', 'PermissionResources', 'RegisteredDevice', 'SharedScope', 'VirtualDriveContainer'], data)
+                for x in range(0, len(data['Blades'])):
+                    data['Blades'][x] = pop(
+                        ['ClassId', 'ObjectType', 'link'], data['Blades'][x])
+                for x in range(0, len(data['Fanmodules'])):
+                    data['Fanmodules'][x] = pop(
+                        ['ClassId', 'ObjectType', 'Moid'], data['Fanmodules'][x])
+                for x in range(0, len(data['Ioms'])):
+                    data['Ioms'][x] = pop(
+                        ['ClassId', 'ObjectType', 'Moid'], data['Ioms'][x])
+                for x in range(0, len(data['Siocs'])):
+                    data['Siocs'][x] = pop(
+                        ['ClassId', 'ObjectType', 'Moid'], data['Siocs'][x])
+                for x in range(0, len(data['ExpanderModules'])):
+                    data['ExpanderModules'][x] = pop(
+                        ['ClassId', 'ObjectType', 'Moid'], data['ExpanderModules'][x])
+                for x in range(0, len(data['Psus'])):
+                    data['Psus'][x] = pop(
+                        ['ClassId', 'ObjectType', 'Moid'], data['Psus'][x])
+                for x in ['AlarmSummary', 'PsuControl', 'FanControl', 'PowerControlState']:
+                    data[x] = pop(['ClassId', 'ObjectType', 'Moid'], data[x])
+                length = len(json.dumps(data))
+                write_splunk(
+                    index, account_name, 'cisco:intersight:equipmentChassis', data)
 
     if not 'compute' in opt_inventory:
         helper.log_debug(
@@ -484,7 +531,7 @@ def collect_events(helper, ew):
                 f"{endpoint}?$expand=Encryption($select=State),License,RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
                 data = pop(['Alarm', 'Ancestors', 'ChildClusters', 'DomainGroupMoid', 'ClassId', 'Owners', 'ObjectType', 'PermissionResources',
-                           'StorageContainers', 'SharedScope', 'Nodes', 'Health', 'ParentCluster', 'Volumes'], data)
+                           'StorageContainers', 'SharedScope', 'Nodes', 'Health', 'ParentCluster', 'Volumes', 'StorageClientIpPools', 'StorageClientVrf'], data)
                 data['License'] = pop(
                     ['Ancestors', 'Cluster', 'Owners', 'DomainGroupMoid', 'PermissionResources', 'RegisteredDevice'], data['License'])
                 data['RegisteredDevice'] = pop(
@@ -668,7 +715,8 @@ def collect_events(helper, ew):
     # NetApp Storage VMs
     endpoint = "storage/NetAppStorageVms"
     if 'netapp' in opt_inventory and doInventory:
-        helper.log_debug(f"{s} | Retrieving NetApp Storage VM Inventory Records")
+        helper.log_debug(
+            f"{s} | Retrieving NetApp Storage VM Inventory Records")
         doNetAppStorageVms = check_intersight(endpoint)
 
     if 'netapp' in opt_inventory and doInventory and doNetAppStorageVms:
@@ -742,7 +790,7 @@ def collect_events(helper, ew):
             RESPONSE = r_intersight(
                 f"{endpoint}?$expand=RegisteredDevice($select=ClaimedByUserName,ClaimedTime,ConnectionStatusLastChangeTime,ConnectionStatus,CreateTime,ReadOnly)&$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
-                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Owners',
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'DeviceMoId', 'Owners', 'ProtectionGroup',
                            'ObjectType', 'PermissionResources', 'SharedScope', 'Uuid'], data)
                 for x in ['RegisteredDevice', 'StorageUtilization']:
                     data[x] = pop(['ClassId', 'ObjectType'], data[x])
