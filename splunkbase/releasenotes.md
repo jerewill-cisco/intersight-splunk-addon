@@ -1,5 +1,10 @@
 # Cisco Intersight Add-on for Splunk Release Notes
 
+## 1.3.1 - TBD
+
+- Additional pruning for cisco:intersight:computePhysicalSummaries and a few other places
+- Added cisco:intersight:equipmentChassis to Compute inventory
+
 ## 1.3.0 - 28 July 2022
 
 >New Inventory types are not automatically added to existing configurations.  Please review your input configurations after upgrading to enable the new options.

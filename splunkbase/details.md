@@ -10,6 +10,7 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 | Alarms | [cond/Alarms][2] | cisco:intersight:condAlarms |
 | Advisories | [tam/AdvisoryInstances][3] | cisco:intersight:tamAdvisoryInstances |
 | Compute | [compute/PhysicalSummaries][4] | cisco:intersight:computePhysicalSummaries |
+| Compute | [equipment/Chasses][26] | cisco:intersight:equipmentChassis |
 | Compute | [cond/HclStatuses][9] | cisco:intersight:condHclStatuses |
 | Contract | [asset/DeviceContractStatusInformations][10] | cisco:intersight:assetDeviceContractInformations |
 | Hitachi | [storage/HitachiArrays][19] | cisco:intersight:storageHitachiClusters |
@@ -57,6 +58,7 @@ The Add-on leverages the [Cisco Intersight RESTful API](https://intersight.com/a
 [23]: https://intersight.com/apidocs/apirefs/api/v1/license/LicenseInfos/model/
 [24]: https://intersight.com/apidocs/apirefs/api/v1/hyperflex/Licenses/model/
 [25]: https://intersight.com/apidocs/apirefs/api/v1/storage/NetAppStorageVms/model/
+[26]: https://intersight.com/apidocs/apirefs/api/v1/equipment/Chasses/model/
 
 Further documentation, sample searches, and known issues are all available at [the Github repository](https://github.com/jerewill-cisco/intersight-splunk-addon).
 
