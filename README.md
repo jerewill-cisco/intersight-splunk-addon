@@ -155,7 +155,7 @@ The following search might be useful to understand how many Intersight records o
 ```SPL
 index=* sourcetype=cisco:intersight:* 
 | dedup Moid 
-| chart count by index, sourcetype, source
+| chart count by sourcetype, source
 ```
 
 You may also notice, if you are very familiar with the Intersight API, that there are things that are missing in Splunk that are present elsewhere. This is due to editorial pruning that is occurring in the Add-on. There are some object references in the API results that simply don't serve any purpose in Splunk. The Add-on is pruning these to improve the overall experience and optimize the amount of data that gets pushed to Splunk.  Likewise, some of the items that are presented in the API as Mo.Ref references are expanded with certain properties selected.  Thus, **most** of the mo.MoRef objects that you would encounter in the API are either removed or expanded into something more useful.
