@@ -145,7 +145,7 @@ In many cases, this will retrieve duplicate records as alarms are updated or inv
 
 ```SPL
 index=* sourcetype="cisco:intersight:computePhysicalSummaries" 
-| dedup Moid`
+| dedup Moid
 ```
 
 The technique of using `| dedup Moid` is applicable to all sourcetypes except cisco:intersight:aaaAuditRecords and should be used in most circumstances.
