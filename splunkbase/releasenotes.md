@@ -1,8 +1,9 @@
 # Cisco Intersight Add-on for Splunk Release Notes
 
-## 1.3.1 - TBD
+## 1.3.1 - 3 August 2022
 
-- Additional pruning for cisco:intersight:computePhysicalSummaries and a few other places
+- Found a serious bug in checkpointing that might cause Audit Logs and Alerts to never be retrieved for an input
+- Additional pruning for cisco:intersight:computePhysicalSummaries and a few other items
 - Added cisco:intersight:equipmentChassis to Compute inventory
 
 ## 1.3.0 - 28 July 2022
