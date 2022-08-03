@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 import input_module_intersight
 
-load_dotenv('_richfield.env')
+load_dotenv('_example.env')
 
 # This code allows us to execute the input for testing without needing additional code from splunk
 # by providing a minimal sub-out of the two classes that splunk passes to the input
@@ -36,7 +36,7 @@ class SplunkEmHelper:
             basic = {'advisories', 'compute', 'contract', 'network', 'target', 'license'}
             hyperflex = {'compute', 'hyperflex'}
             thirdpartystorage = {'pure', 'netapp', 'hitachi'}
-            return none
+            return all
 
     # this function provides the input name
     def get_input_stanza(self):
