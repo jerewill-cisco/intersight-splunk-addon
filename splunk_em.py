@@ -24,7 +24,7 @@ class SplunkEmHelper:
         if arg_name == 'validate_ssl':
             return True
         if arg_name == 'enable_aaa_audit_records':
-            return False
+            return True
         if arg_name == 'enable_alarms':
             return True
         if arg_name == 'inventory_interval':
