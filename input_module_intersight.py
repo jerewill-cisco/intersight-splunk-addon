@@ -60,6 +60,8 @@ def collect_events(helper, ew):
                 f"{account_name}_last_{type}_record")
             helper.log_debug(
                 f"{s} | Checkpoint value for {type} records is {state}")
+            if (state == None or state == "None"):
+                raise Exception("State is none")
             return state
         except:
             # set the state if it's not set
@@ -215,7 +217,9 @@ def collect_events(helper, ew):
         state = get_checkpoint('audit')
         # get the audit records
         RESPONSE = r_intersight(
-            f"{endpoint}?$orderby=ModTime%20asc&$filter=ModTime%20gt%20{state}")
+            f"{endpoint}?$inlinecount=allpages&$orderby=ModTime%20asc&$filter=ModTime%20gt%20{state}")
+        helper.log_info(
+            f"{s} | Found {RESPONSE.json()['Count']} audit records to retrieve")
         # process the audit records
         for data in RESPONSE.json()['Results']:
             # pop things we don't need
@@ -252,8 +256,9 @@ def collect_events(helper, ew):
         state = get_checkpoint('alarm')
         # Let's get the alarm records
         RESPONSE = r_intersight(
-            f"{endpoint}?$orderby=ModTime%20asc&$filter=ModTime%20gt%20{state}")
-
+            f"{endpoint}?$inlinecount=allpages&$orderby=ModTime%20asc&$filter=ModTime%20gt%20{state}")
+        helper.log_info(
+            f"{s} | Found {RESPONSE.json()['Count']} alarm records to retrieve")
         # Process the alarm records
         for data in RESPONSE.json()['Results']:
             data = pop(['AffectedMo', 'Ancestors', 'Owners', 'PermissionResources',
