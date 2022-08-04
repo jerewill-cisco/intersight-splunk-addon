@@ -1,5 +1,10 @@
 # Cisco Intersight Add-on for Splunk Release Notes
 
+## 1.3.2 - TBD
+
+- Improvements to the equipmentChassis code
+- Some general refactoring of how the add-on pops attributes from the JSON
+
 ## 1.3.1 - 3 August 2022
 
 - Found a serious bug in checkpointing that might cause Audit Logs and Alerts to never be retrieved for an input
