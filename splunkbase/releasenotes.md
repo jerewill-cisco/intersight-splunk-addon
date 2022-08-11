@@ -4,6 +4,7 @@
 
 - Improvements to the equipmentChassis code
 - Some general refactoring of how the add-on pops attributes from the JSON
+- Added `DATETIME_CONFIG = NONE` to cisco:intersight:equipmentChassis
 
 ## 1.3.1 - 3 August 2022
 

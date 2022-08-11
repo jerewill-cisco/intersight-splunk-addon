@@ -105,10 +105,12 @@ def collect_events(helper, ew):
         if (data != None and len(data) != 0):
             try:
                 for thepop in thingstopop:
+                    try:
                         data.pop(thepop)
+                    except:
+                        helper.log_debug(f"{s} | Failed to pop {thepop}")
                 return data
             except:
-                helper.log_debug(f"{s} | Failed to pop {thepop}")
                 return data
         else:
             return None
@@ -376,7 +378,7 @@ def collect_events(helper, ew):
                     hclRESPONSE = r_intersight(
                         f"cond/HclStatuses?$filter=ManagedObject.Moid%20eq%20%27{data['Moid']}%27")
                     hcldata = hclRESPONSE.json()['Results'][0]
-                    hcldata = pop(['Ancestors', 'Details', 'Owners',
+                    hcldata = pop(['Ancestors', 'Details', 'Owners', 'ClassId', 'ObjectType',
                                   'PermissionResources', 'RegisteredDevice'], hcldata)
                     hcldata['ManagedObject'] = pop(
                         ['ClassId', 'link'], hcldata['ManagedObject'])
@@ -821,7 +823,7 @@ def collect_events(helper, ew):
             RESPONSE = r_intersight(
                 f"{endpoint}?$top={results_per_page}&$skip={str(i)}")
             for data in RESPONSE.json()['Results']:
-                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'Owners', 'Parent', 'ObjectType',
+                data = pop(['Ancestors', 'DomainGroupMoid', 'ClassId', 'Owners', 'Parent', 'ObjectType', 'ProtectionGroup',
                            'PermissionResources', 'SharedScope', 'NaaId', 'RegisteredDevice'], data)
                 for attrib in ['Array', 'StorageUtilization']:
                     data[attrib] = pop(['ClassId', 'ObjectType'], data[attrib])
