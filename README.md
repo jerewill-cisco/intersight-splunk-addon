@@ -1,3 +1,9 @@
+# Transfer of Ownership of the Add-On to Cisco
+
+As of April 2024, I was no longer employed by Cisco Systems. Much discussion has subsequently occurred about the future of this project with the team at Cisco, given their acquisition of Splunk. **As of August 2024, I am working to transfer the Splunkbase listing to Cisco ownership, and they will be conducting any future development.** The 1.3.1 version is my last release and any future releases will be at their discretion and will occur without my involvement.
+
+According to Splunkbase there have been hundreds of installs to date. If you are reading this, please accept my thanks for coming on this journey with me. I'm proud of how much I learned and what I was able to accomplish. It worked! But, I'm a little sad to say that today is the end of this project for me.  Special thanks to @cgascoig and @cahanson-cisco.
+
 # Cisco Intersight Add-on for Splunk
 
 This project came about to fill a gap that I saw in the [Cisco Intersight](https://intersight.com/help/saas) ecosystem. How can you get useful data from Intersight into Splunk? Since Intersight uses a unique API authentication scheme, simple REST API inputs could not be used.
