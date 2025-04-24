@@ -1,3 +1,11 @@
+# New 2.0 Add-On Available
+
+As of April 2025, Cisco has shipped the all new **supported** Add-On with a lot of new capabilities.  The big caveat is that the new version is not compatible with the one that I wrote and that you may be using.  If you happen to have found this repo, please use this new Cisco supported Add-On instead of the one you see here!
+
+[Cisco Intersight Add-on for Splunk](https://splunkbase.splunk.com/app/7828) at Splunkbase
+
+[Documentation](https://intersight.com/help/saas/resources#intersight_add-on_for_splunk) is also available!
+
 # Transfer of Ownership of the Add-On to Cisco
 
 As of April 2024, I was no longer employed by Cisco Systems. Much discussion has subsequently occurred about the future of this project with the team at Cisco, given their acquisition of Splunk. **As of August 2024, I am working to transfer the Splunkbase listing to Cisco ownership, and they will be conducting any future development.** The 1.3.1 version is my last release and any future releases will be at their discretion and will occur without my involvement.
